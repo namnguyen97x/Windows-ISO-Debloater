@@ -363,7 +363,7 @@ jobs:
           "-TPMBypass", $tpmBypass
           "-UserFoldersEnable", "yes"
           "-ESDConvert", $esdConvert
-          "-useDISM", "no"
+          "-useOscdimg", "yes"
         )
         
         Write-Host "Using unified debloat configuration for $windowsVersion"
