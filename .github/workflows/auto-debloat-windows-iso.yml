@@ -241,7 +241,7 @@ jobs:
         
         # Xử lý preset hoặc custom options
         if ($preset -like "*Quick*") {
-          # Preset tối ưu cho tất cả - bao gồm TPM bypass để tương thích tốt hơn
+          # Preset tối ưu cho tất cả - bao gồm TPM bypass và nén ISO để giảm kích thước
           $params += @(
             "-AppxRemove", "yes"
             "-CapabilitiesRemove", "yes"
@@ -250,10 +250,10 @@ jobs:
             "-AIRemove", "yes"
             "-TPMBypass", "yes"
             "-UserFoldersEnable", "yes"
-            "-ESDConvert", "no"
+            "-ESDConvert", "yes"
             "-useOscdimg", "yes"
           )
-          Write-Host "Using Quick preset configuration (with TPM bypass for better compatibility)"
+          Write-Host "Using Quick preset configuration (with TPM bypass and ISO compression for smaller file size)"
         } else {
           # Custom options - sử dụng các inputs còn lại
           $params += @(
@@ -336,7 +336,7 @@ jobs:
           - Xóa AI Components: ✅
           - Bypass TPM: ${{ github.event.inputs.preset == 'Custom (Full Options)' && (github.event.inputs.bypass_tpm == 'true' && '✅' || '❌') || '✅ (Quick preset - for better compatibility)' }}
           - Bật user folders: ✅
-          - Nén ISO: ${{ github.event.inputs.preset == 'Custom (Full Options)' && (github.event.inputs.compress_iso == 'true' && '✅' || '❌') || '❌ (Quick preset)' }}
+          - Nén ISO: ${{ github.event.inputs.preset == 'Custom (Full Options)' && (github.event.inputs.compress_iso == 'true' && '✅' || '❌') || '✅ (Quick preset - for smaller file size)' }}
           
           **⚠️ Lưu ý:** File này được tạo tự động bởi GitHub Actions. Vui lòng kiểm tra kỹ trước khi sử dụng.
           
