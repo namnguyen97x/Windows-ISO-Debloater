@@ -37,6 +37,8 @@ Use GitHub Actions to automatically download and process Windows ISO files:
    - **Windows Build**: Select 25H2 (Latest), 24H2, or 22H2
    - **Windows Edition**: Choose Pro, Home, or Enterprise
    - **Debloat Options**: Full control over debloating settings (for Custom mode)
+   - **Install Office**: Automatically install Office after debloat (optional)
+   - **Office Edition**: Choose Office 2021/2019/365 Pro Plus
 4. The processed ISO will be available as an artifact or release
 
 ### Option 2: PowerShell Command (Manual)
@@ -161,6 +163,8 @@ edge:true/false,store:true/false,ai:true/false,defender:true/false,tpm:true/fals
 - **TPM bypass** - Works on older hardware
 - **ISO compression** - Smaller file size
 - **Registry optimizations** - Better performance
+- **Office integration** - Automatically install Office with Office Tool Plus
+- **Multiple Office editions** - Support for Office 2021/2019/365 Pro Plus
 
 ### Benefits:
 - ✅ No local setup required

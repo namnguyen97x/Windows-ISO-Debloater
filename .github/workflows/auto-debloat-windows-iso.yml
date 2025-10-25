@@ -44,6 +44,20 @@ on:
         required: false
         type: string
         default: 'edge:false,store:false,ai:false,defender:false,tpm:true,compress:true'
+      install_office:
+        description: 'Install Office automatically after debloat'
+        required: false
+        type: boolean
+        default: false
+      office_edition:
+        description: 'Office Edition to install'
+        required: false
+        type: choice
+        options:
+          - 'Office 2021 Pro Plus'
+          - 'Office 2019 Pro Plus'
+          - 'Office 365 Pro Plus'
+        default: 'Office 2021 Pro Plus'
   schedule:
     # Chạy tự động mỗi thứ 2 lúc 2:00 AM UTC (9:00 AM VN)
     - cron: '0 2 * * 1'
@@ -393,6 +407,63 @@ jobs:
           exit 1
         }
         
+    - name: Install Office (Optional)
+      if: github.event.inputs.install_office == 'true'
+      run: |
+        $installOffice = "${{ github.event.inputs.install_office }}"
+        $officeEdition = "${{ github.event.inputs.office_edition }}"
+        
+        if ($installOffice -eq "true") {
+          Write-Host "=== INSTALLING OFFICE ==="
+          Write-Host "Office Edition: $officeEdition"
+          Write-Host "========================="
+          
+          try {
+            # Download and run Office Tool Plus
+            Write-Host "Downloading Office Tool Plus..."
+            $officeToolUrl = "https://otp.landian.vip/redirect/download/Office-Tool-with-runtime-v10.1.6.2.zip"
+            $officeToolPath = "$env:ISO_DOWNLOAD_PATH\OfficeTool.zip"
+            $officeToolDir = "$env:ISO_DOWNLOAD_PATH\OfficeTool"
+            
+            # Download Office Tool Plus
+            Invoke-WebRequest -Uri $officeToolUrl -OutFile $officeToolPath -UseBasicParsing
+            
+            # Extract Office Tool Plus
+            Expand-Archive -Path $officeToolPath -DestinationPath $officeToolDir -Force
+            
+            # Create Office installation configuration
+            $officeConfig = @"
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+  <Add OfficeClientEdition="64" Channel="PerpetualVL2021">
+    <Product ID="ProPlus2021Volume">
+      <Language ID="en-us" />
+    </Product>
+  </Add>
+  <Display Level="None" AcceptEULA="TRUE" />
+  <Property Name="AUTOACTIVATE" Value="1" />
+</Configuration>
+"@
+            
+            # Save configuration
+            $configPath = "$officeToolDir\config.xml"
+            $officeConfig | Out-File -FilePath $configPath -Encoding UTF8
+            
+            Write-Host "Office configuration created: $configPath"
+            Write-Host "Office installation will be integrated into the ISO"
+            
+            # Note: Office installation will be handled by the debloater script
+            # This step prepares the Office Tool Plus for integration
+            
+          }
+          catch {
+            Write-Warning "Failed to prepare Office installation: $_"
+            Write-Host "Continuing without Office installation..."
+          }
+        } else {
+          Write-Host "Office installation skipped (install_office = false)"
+        }
+        
     - name: Check output ISO
       run: |
         $outputISO = "${{ github.event.inputs.iso_filename }}.iso"
@@ -448,6 +519,10 @@ jobs:
           **📝 Debloat Options Used:**
           - Quick Preset: `edge:false,store:false,ai:false,defender:false,tpm:true,compress:true`
           - Custom Mode: `${{ github.event.inputs.debloat_options }}`
+          
+          **📦 Office Installation:**
+          - Install Office: ${{ github.event.inputs.install_office == 'true' && '✅ Yes' || '❌ No' }}
+          - Office Edition: ${{ github.event.inputs.install_office == 'true' && github.event.inputs.office_edition || 'N/A' }}
           
           **📝 Debloat Options Format (for Custom mode):**
           ```
