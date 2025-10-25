@@ -241,19 +241,19 @@ jobs:
         
         # Xử lý preset hoặc custom options
         if ($preset -like "*Quick*") {
-          # Preset tối ưu cho tất cả
+          # Preset tối ưu cho tất cả - bao gồm TPM bypass để tương thích tốt hơn
           $params += @(
             "-AppxRemove", "yes"
             "-CapabilitiesRemove", "yes"
             "-OnedriveRemove", "yes"
             "-EDGERemove", "yes"
             "-AIRemove", "yes"
-            "-TPMBypass", "no"
+            "-TPMBypass", "yes"
             "-UserFoldersEnable", "yes"
             "-ESDConvert", "no"
             "-useOscdimg", "yes"
           )
-          Write-Host "Using Quick preset configuration"
+          Write-Host "Using Quick preset configuration (with TPM bypass for better compatibility)"
         } else {
           # Custom options - sử dụng các inputs còn lại
           $params += @(
@@ -334,7 +334,7 @@ jobs:
           - Xóa OneDrive: ✅
           - Xóa Microsoft Edge: ${{ github.event.inputs.preset == 'Custom (Full Options)' && (github.event.inputs.remove_edge == 'true' && '✅' || '❌') || '✅ (Quick preset)' }}
           - Xóa AI Components: ✅
-          - Bypass TPM: ${{ github.event.inputs.preset == 'Custom (Full Options)' && (github.event.inputs.bypass_tpm == 'true' && '✅' || '❌') || '❌ (Quick preset)' }}
+          - Bypass TPM: ${{ github.event.inputs.preset == 'Custom (Full Options)' && (github.event.inputs.bypass_tpm == 'true' && '✅' || '❌') || '✅ (Quick preset - for better compatibility)' }}
           - Bật user folders: ✅
           - Nén ISO: ${{ github.event.inputs.preset == 'Custom (Full Options)' && (github.event.inputs.compress_iso == 'true' && '✅' || '❌') || '❌ (Quick preset)' }}
           
