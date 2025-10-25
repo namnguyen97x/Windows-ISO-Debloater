@@ -34,9 +34,9 @@ Use GitHub Actions to automatically download and process Windows ISO files:
 2. Select **"Windows ISO Debloater"** workflow
 3. Click **"Run workflow"** and configure:
    - **Windows Version**: Choose Windows 11, Windows 10, or Custom
-   - **Windows Build**: Select 25H2 (Latest) or 24H2 (for Windows 11)
+   - **Windows Build**: Select 25H2 (Latest), 24H2, or 22H2
    - **Windows Edition**: Choose Pro, Home, or Enterprise
-   - **Custom Options**: Full control over debloating settings
+   - **Debloat Options**: Full control over debloating settings (for Custom mode)
 4. The processed ISO will be available as an artifact or release
 
 ### Option 2: PowerShell Command (Manual)
@@ -136,7 +136,7 @@ This repository includes a GitHub Actions workflow that automates the entire Win
 
 ### Available Options:
 - **Windows 11** - Latest Windows 11 with build selection (25H2/24H2)
-- **Windows 10** - Windows 10 22H2 with edition selection (Pro/Home/Enterprise)
+- **Windows 10** - Windows 10 with build selection (22H2) and edition selection (Pro/Home/Enterprise)
 - **Custom (Full Options)** - Complete control over all settings and custom ISO URL
 
 ### Quick Preset Features:
@@ -144,6 +144,14 @@ This repository includes a GitHub Actions workflow that automates the entire Win
 - **TPM bypass** - Works on older hardware
 - **ISO compression** - Smaller file size
 - **Registry optimizations** - Better performance
+
+### Debloat Options Format (Custom Mode):
+```
+edge:true/false,store:true/false,ai:true/false,defender:true/false,tpm:true/false,compress:true/false
+```
+
+**Example:**
+- `edge:true,store:false,ai:true,defender:false,tpm:true,compress:true` - Remove Edge and AI, keep Store and Defender
 
 ### Benefits:
 - ✅ No local setup required

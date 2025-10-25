@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       windows_version:
-        description: 'Chọn phiên bản Windows'
+        description: 'Select Windows Version'
         required: true
         type: choice
         options:
@@ -13,15 +13,16 @@ on:
           - 'Custom (Full Options)'
         default: 'Windows 11'
       windows_build:
-        description: 'Chọn build Windows (chỉ áp dụng cho Windows 11)'
-        required: false
+        description: 'Select Windows Build'
+        required: true
         type: choice
         options:
           - '25H2 (Latest)'
           - '24H2'
+          - '22H2'
         default: '25H2 (Latest)'
       windows_edition:
-        description: 'Chọn phiên bản Windows'
+        description: 'Select Windows Edition'
         required: true
         type: choice
         options:
@@ -30,16 +31,16 @@ on:
           - 'Enterprise'
         default: 'Pro'
       iso_url:
-        description: 'URL của Windows ISO (để trống nếu dùng preset). Lấy từ: https://www.microsoft.com/en-us/software-download/windows11'
+        description: 'Custom ISO URL (leave empty to use preset). Get from: https://www.microsoft.com/en-us/software-download/windows11'
         required: false
         type: string
       iso_filename:
-        description: 'Tên file ISO (không có extension)'
+        description: 'Output ISO filename (without extension)'
         required: true
         type: string
         default: 'Windows_Debloated'
-      custom_options:
-        description: 'Tùy chọn tùy chỉnh (chỉ dùng với Custom mode)'
+      debloat_options:
+        description: 'Debloat Options (for Custom mode): edge:false,store:false,ai:false,defender:false,tpm:true,compress:true'
         required: false
         type: string
         default: 'edge:false,store:false,ai:false,defender:false,tpm:true,compress:true'
@@ -71,13 +72,13 @@ jobs:
         $windowsEdition = "${{ github.event.inputs.windows_edition }}"
         $customUrl = "${{ github.event.inputs.iso_url }}"
         
-        # Xác định URL ISO dựa trên menu selection
+        # Determine ISO URL based on menu selection
         if ($windowsVersion -eq "Custom (Full Options)") {
-          # Custom mode - sử dụng URL từ input hoặc default
+          # Custom mode - use URL from input or default
           $isoUrl = if ($customUrl) { $customUrl } else { "https://software.download.prss.microsoft.com/dbazure/Win11_25H2_English_x64.iso?t=d1a5a3e8-32ba-4bf6-9655-3b1785b1d44e&P1=1761468171&P2=601&P3=2&P4=TgPmVnaRJIXKrWv3dnoKNVmTq4NCRPTaIepZB4fjx3zqeC2YX36KRov6nULxRH9uLKMNbzJ4fkcOrVe4sYSQPf2BwqD3E%2bb8fH12uNiI9qKow8WjDQiasCkH%2b69Uc66%2f9Gro5OcswLtPby99e0pB5le6PSnu2t1yMkAAjNCaJ7s6%2bUicJ39K2aEHDUjbU7hYasU6BuQUqz0xeSEptTeZLpgo7UXa2OykZ3w3s2gzaugyEojm%2btNQl8EMmiUbN1Ol3Yn5GNuDrEzlYV6WIKhw6LnxOkdzlATRI0lEiTM%2fWX3v%2fnvKAf5fsOMxVJdlQlPh2iQbUzxfe6GURVzfKxQ3pQ%3d%3d" }
           $winEdition = "${{ github.event.inputs.windows_edition }}"
         } else {
-          # Quick preset mode - xây dựng từ menu selections
+          # Quick preset mode - build from menu selections
           $winEdition = "$windowsVersion $windowsEdition"
           
           if ($windowsVersion -eq "Windows 11") {
@@ -88,6 +89,7 @@ jobs:
               $isoUrl = "https://software-download.microsoft.com/download/pr/444969d5-f34g-4e03-ac9d-1f9786c69161/Win11_24H2_English_x64v1.iso"
             }
           } elseif ($windowsVersion -eq "Windows 10") {
+            # Windows 10 - always use 22H2 build
             $isoUrl = "https://software-download.microsoft.com/download/pr/444969d5-f34g-4e03-ac9d-1f9786c69161/Win10_22H2_English_x64v1.iso"
           }
         }
@@ -321,28 +323,57 @@ jobs:
             "-ESDConvert", "yes"
             "-useOscdimg", "yes"
           )
+          # Display Quick preset configuration
+          Write-Host "=== QUICK PRESET CONFIGURATION ==="
+          Write-Host "Windows Version: $windowsVersion"
+          Write-Host "Windows Build: $windowsBuild"
+          Write-Host "Windows Edition: $windowsEdition"
+          Write-Host "Remove Microsoft Edge: no (kept)"
+          Write-Host "Remove Microsoft Store: no (kept)"
+          Write-Host "Remove AI Components: no (kept)"
+          Write-Host "Remove Windows Defender: no (kept)"
+          Write-Host "Bypass TPM Check: yes (for compatibility)"
+          Write-Host "Compress ISO: yes (smaller file)"
+          Write-Host "Remove Windows Features: yes"
+          Write-Host "Remove OneDrive: yes"
+          Write-Host "Enable User Folders: yes"
+          Write-Host "=================================="
+          
           Write-Host "Using Quick preset configuration for $windowsVersion (minimal debloat, keeping Edge, Store, AI, Defender)"
         } else {
-          # Custom options - parse custom_options string
-          $customOptions = "${{ github.event.inputs.custom_options }}"
-          Write-Host "Custom options: $customOptions"
+          # Custom options - parse debloat_options string
+          $debloatOptions = "${{ github.event.inputs.debloat_options }}"
+          Write-Host "Debloat options: $debloatOptions"
           
           # Parse options (format: edge:false,store:false,ai:false,defender:false,tpm:true,compress:true)
           $options = @{}
-          $customOptions -split ',' | ForEach-Object {
+          $debloatOptions -split ',' | ForEach-Object {
             $parts = $_ -split ':'
             if ($parts.Length -eq 2) {
               $options[$parts[0]] = $parts[1]
             }
           }
           
-          # Set default values if not specified
+          # Set values based on parsed options
           $edgeRemove = if ($options['edge'] -eq 'true') { "yes" } else { "no" }
           $storeRemove = if ($options['store'] -eq 'true') { "yes" } else { "no" }
           $aiRemove = if ($options['ai'] -eq 'true') { "yes" } else { "no" }
           $defenderRemove = if ($options['defender'] -eq 'true') { "yes" } else { "no" }
           $tpmBypass = if ($options['tpm'] -eq 'true') { "yes" } else { "no" }
           $esdConvert = if ($options['compress'] -eq 'true') { "yes" } else { "no" }
+          
+          # Display what will be debloated
+          Write-Host "=== DEBLOAT CONFIGURATION ==="
+          Write-Host "Remove Microsoft Edge: $edgeRemove"
+          Write-Host "Remove Microsoft Store: $storeRemove"
+          Write-Host "Remove AI Components: $aiRemove"
+          Write-Host "Remove Windows Defender: $defenderRemove"
+          Write-Host "Bypass TPM Check: $tpmBypass"
+          Write-Host "Compress ISO: $esdConvert"
+          Write-Host "Remove Windows Features: yes"
+          Write-Host "Remove OneDrive: yes"
+          Write-Host "Enable User Folders: yes"
+          Write-Host "============================="
           
           $params += @(
             "-AppxRemove", $storeRemove
@@ -408,29 +439,34 @@ jobs:
         tag_name: debloated-${{ github.run_number }}
         name: Windows ISO Debloated - ${{ github.run_number }}
         body: |
-          ## 🚀 Windows ISO đã được xử lý tự động
+          ## 🚀 Windows ISO Processed Automatically
           
-          **📋 Thông tin:**
+          **📋 Information:**
           - **Windows Version:** ${{ github.event.inputs.windows_version }}
           - **Windows Build:** ${{ github.event.inputs.windows_build }}
           - **Windows Edition:** ${{ github.event.inputs.windows_edition }}
-          - **Tên file:** ${{ github.event.inputs.iso_filename }}.iso
-          - **ISO gốc:** ${{ github.event.inputs.iso_url || 'Preset URL' }}
+          - **Output File:** ${{ github.event.inputs.iso_filename }}.iso
+          - **Source ISO:** ${{ github.event.inputs.iso_url || 'Preset URL' }}
           
-          **⚙️ Cấu hình xử lý:**
-          - Xóa Microsoft Store: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && 'Tùy chỉnh' || '❌ (Quick preset - giữ lại)' }}
-          - Xóa Windows features: ✅
-          - Xóa OneDrive: ✅
-          - Xóa Microsoft Edge: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && 'Tùy chỉnh' || '❌ (Quick preset - giữ lại)' }}
-          - Xóa AI Components: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && 'Tùy chỉnh' || '❌ (Quick preset - giữ lại)' }}
-          - Xóa Windows Defender: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && 'Tùy chỉnh' || '❌ (Quick preset - giữ lại)' }}
-          - Bypass TPM: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && 'Tùy chỉnh' || '✅ (Quick preset - for better compatibility)' }}
-          - Bật user folders: ✅
-          - Nén ISO: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && 'Tùy chỉnh' || '✅ (Quick preset - for smaller file size)' }}
+          **⚙️ Debloat Configuration:**
+          - Remove Microsoft Store: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && 'Custom' || '❌ (Quick preset - kept)' }}
+          - Remove Windows Features: ✅
+          - Remove OneDrive: ✅
+          - Remove Microsoft Edge: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && 'Custom' || '❌ (Quick preset - kept)' }}
+          - Remove AI Components: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && 'Custom' || '❌ (Quick preset - kept)' }}
+          - Remove Windows Defender: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && 'Custom' || '❌ (Quick preset - kept)' }}
+          - Bypass TPM: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && 'Custom' || '✅ (Quick preset - for compatibility)' }}
+          - Enable User Folders: ✅
+          - Compress ISO: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && 'Custom' || '✅ (Quick preset - smaller file)' }}
           
-          **⚠️ Lưu ý:** File này được tạo tự động bởi GitHub Actions. Vui lòng kiểm tra kỹ trước khi sử dụng.
+          **📝 Debloat Options Format (for Custom mode):**
+          ```
+          edge:true/false,store:true/false,ai:true/false,defender:true/false,tpm:true/false,compress:true/false
+          ```
           
-          **🔗 Hướng dẫn:** Xem [README.md](README.md) để biết cách sử dụng.
+          **⚠️ Note:** This file was generated automatically by GitHub Actions. Please verify before use.
+          
+          **🔗 Guide:** See [README.md](README.md) for usage instructions.
         files: ${{ env.OUTPUT_PATH }}/*.iso
         draft: false
         prerelease: false
