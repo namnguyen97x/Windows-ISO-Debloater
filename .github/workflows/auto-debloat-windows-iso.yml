@@ -2,33 +2,33 @@ name: Windows ISO Debloater
 
 on:
   workflow_dispatch:
-            inputs:
-              windows_version:
-                description: 'Chọn phiên bản Windows'
-                required: true
-                type: choice
-                options:
-                  - 'Windows 11'
-                  - 'Windows 10'
-                  - 'Custom (Full Options)'
-                default: 'Windows 11'
-              windows_build:
-                description: 'Chọn build Windows (chỉ áp dụng cho Windows 11)'
-                required: false
-                type: choice
-                options:
-                  - '25H2 (Latest)'
-                  - '24H2'
-                default: '25H2 (Latest)'
-              windows_edition:
-                description: 'Chọn phiên bản Windows'
-                required: true
-                type: choice
-                options:
-                  - 'Pro'
-                  - 'Home'
-                  - 'Enterprise'
-                default: 'Pro'
+    inputs:
+      windows_version:
+        description: 'Chọn phiên bản Windows'
+        required: true
+        type: choice
+        options:
+          - 'Windows 11'
+          - 'Windows 10'
+          - 'Custom (Full Options)'
+        default: 'Windows 11'
+      windows_build:
+        description: 'Chọn build Windows (chỉ áp dụng cho Windows 11)'
+        required: false
+        type: choice
+        options:
+          - '25H2 (Latest)'
+          - '24H2'
+        default: '25H2 (Latest)'
+      windows_edition:
+        description: 'Chọn phiên bản Windows'
+        required: true
+        type: choice
+        options:
+          - 'Pro'
+          - 'Home'
+          - 'Enterprise'
+        default: 'Pro'
       iso_url:
         description: 'URL của Windows ISO (để trống nếu dùng preset). Lấy từ: https://www.microsoft.com/en-us/software-download/windows11'
         required: false
@@ -38,18 +38,6 @@ on:
         required: true
         type: string
         default: 'Windows_Debloated'
-      win_edition:
-        description: 'Phiên bản Windows cần xử lý'
-        required: true
-        type: choice
-        options:
-          - 'Windows 11 Pro'
-          - 'Windows 11 Home'
-          - 'Windows 11 Enterprise'
-          - 'Windows 10 Pro'
-          - 'Windows 10 Home'
-          - 'Windows 10 Enterprise'
-        default: 'Windows 11 Pro'
       remove_edge:
         description: 'Xóa Microsoft Edge'
         required: false
@@ -112,7 +100,7 @@ jobs:
         if ($windowsVersion -eq "Custom (Full Options)") {
           # Custom mode - sử dụng URL từ input hoặc default
           $isoUrl = if ($customUrl) { $customUrl } else { "https://software.download.prss.microsoft.com/dbazure/Win11_25H2_English_x64.iso?t=d1a5a3e8-32ba-4bf6-9655-3b1785b1d44e&P1=1761468171&P2=601&P3=2&P4=TgPmVnaRJIXKrWv3dnoKNVmTq4NCRPTaIepZB4fjx3zqeC2YX36KRov6nULxRH9uLKMNbzJ4fkcOrVe4sYSQPf2BwqD3E%2bb8fH12uNiI9qKow8WjDQiasCkH%2b69Uc66%2f9Gro5OcswLtPby99e0pB5le6PSnu2t1yMkAAjNCaJ7s6%2bUicJ39K2aEHDUjbU7hYasU6BuQUqz0xeSEptTeZLpgo7UXa2OykZ3w3s2gzaugyEojm%2btNQl8EMmiUbN1Ol3Yn5GNuDrEzlYV6WIKhw6LnxOkdzlATRI0lEiTM%2fWX3v%2fnvKAf5fsOMxVJdlQlPh2iQbUzxfe6GURVzfKxQ3pQ%3d%3d" }
-          $winEdition = "${{ github.event.inputs.win_edition }}"
+          $winEdition = "${{ github.event.inputs.windows_edition }}"
         } else {
           # Quick preset mode - xây dựng từ menu selections
           $winEdition = "$windowsVersion $windowsEdition"
