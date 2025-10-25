@@ -79,11 +79,11 @@ jobs:
         # Xác định URL ISO dựa trên preset
         switch ($preset) {
           "Windows 11 Pro (Quick)" { 
-            $isoUrl = "https://software-download.microsoft.com/download/pr/444969d5-f34g-4e03-ac9d-1f9786c69161/Win11_24H2_English_x64v1.iso"
+            $isoUrl = "https://dn721607.ca.archive.org/0/items/windows-11-24h2-iso_202501/Win11_24H2_English_x64.iso"
             $winEdition = "Windows 11 Pro"
           }
           "Windows 11 Home (Quick)" { 
-            $isoUrl = "https://software-download.microsoft.com/download/pr/444969d5-f34g-4e03-ac9d-1f9786c69161/Win11_24H2_English_x64v1.iso"
+            $isoUrl = "https://dn721607.ca.archive.org/0/items/windows-11-24h2-iso_202501/Win11_24H2_English_x64.iso"
             $winEdition = "Windows 11 Home"
           }
           "Windows 10 Pro (Quick)" { 
@@ -95,7 +95,7 @@ jobs:
             $winEdition = "Windows 10 Home"
           }
           default { 
-            $isoUrl = if ($customUrl) { $customUrl } else { "https://software-download.microsoft.com/download/pr/444969d5-f34g-4e03-ac9d-1f9786c69161/Win11_24H2_English_x64v1.iso" }
+            $isoUrl = if ($customUrl) { $customUrl } else { "https://dn721607.ca.archive.org/0/items/windows-11-24h2-iso_202501/Win11_24H2_English_x64.iso" }
             $winEdition = "${{ github.event.inputs.win_edition }}"
           }
         }
@@ -117,6 +117,7 @@ jobs:
         
         # Fallback URLs nếu URL chính fail
         $fallbackUrls = @(
+          "https://dn721607.ca.archive.org/0/items/windows-11-24h2-iso_202501/Win11_24H2_English_x64.iso",
           "https://software-download.microsoft.com/download/pr/444969d5-f34g-4e03-ac9d-1f9786c69161/Win11_24H2_English_x64v1.iso",
           "https://software-download.microsoft.com/download/sg/444969d5-f34g-4e03-ac9d-1f9786c69161/Win11_24H2_English_x64v1.iso",
           "https://go.microsoft.com/fwlink/p/?LinkId=2124703"
