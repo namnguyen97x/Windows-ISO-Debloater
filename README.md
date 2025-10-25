@@ -139,19 +139,28 @@ This repository includes a GitHub Actions workflow that automates the entire Win
 - **Windows 10** - Windows 10 with build selection (22H2) and edition selection (Pro/Home/Enterprise)
 - **Custom (Full Options)** - Complete control over all settings and custom ISO URL
 
-### Quick Preset Features:
-- **Minimal debloat** - Keeps essential apps (Edge, Store, AI, Defender)
-- **TPM bypass** - Works on older hardware
-- **ISO compression** - Smaller file size
-- **Registry optimizations** - Better performance
+### Debloat System (Unified for All Modes):
+All presets now use the same debloat options format for consistency:
 
-### Debloat Options Format (Custom Mode):
+**Quick Preset Default:**
+```
+edge:false,store:false,ai:false,defender:false,tpm:true,compress:true
+```
+
+**Custom Mode:**
 ```
 edge:true/false,store:true/false,ai:true/false,defender:true/false,tpm:true/false,compress:true/false
 ```
 
-**Example:**
-- `edge:true,store:false,ai:true,defender:false,tpm:true,compress:true` - Remove Edge and AI, keep Store and Defender
+**Examples:**
+- **Quick Preset**: `edge:false,store:false,ai:false,defender:false,tpm:true,compress:true` - Minimal debloat
+- **Custom**: `edge:true,store:false,ai:true,defender:false,tpm:true,compress:true` - Remove Edge and AI, keep Store and Defender
+
+### Features:
+- **Unified debloat system** - Same format for all modes
+- **TPM bypass** - Works on older hardware
+- **ISO compression** - Smaller file size
+- **Registry optimizations** - Better performance
 
 ### Benefits:
 - ✅ No local setup required

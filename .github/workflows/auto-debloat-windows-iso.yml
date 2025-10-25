@@ -309,85 +309,64 @@ jobs:
           "-outputISO", "`"$outputISO`""
         )
         
-        # Xử lý preset hoặc custom options
-        if ($windowsVersion -ne "Custom (Full Options)") {
-          # Quick preset mode - tối ưu cho tất cả Windows versions
-          $params += @(
-            "-AppxRemove", "no"
-            "-CapabilitiesRemove", "yes"
-            "-OnedriveRemove", "yes"
-            "-EDGERemove", "no"
-            "-AIRemove", "no"
-            "-TPMBypass", "yes"
-            "-UserFoldersEnable", "yes"
-            "-ESDConvert", "yes"
-            "-useDISM", "no"
-          )
-          # Display Quick preset configuration
-          Write-Host "=== QUICK PRESET CONFIGURATION ==="
-          Write-Host "Windows Version: $windowsVersion"
-          Write-Host "Windows Build: $windowsBuild"
-          Write-Host "Windows Edition: $windowsEdition"
-          Write-Host "Remove Microsoft Edge: no (kept)"
-          Write-Host "Remove Microsoft Store: no (kept)"
-          Write-Host "Remove AI Components: no (kept)"
-          Write-Host "Remove Windows Defender: no (kept)"
-          Write-Host "Bypass TPM Check: yes (for compatibility)"
-          Write-Host "Compress ISO: yes (smaller file)"
-          Write-Host "Remove Windows Features: yes"
-          Write-Host "Remove OneDrive: yes"
-          Write-Host "Enable User Folders: yes"
-          Write-Host "=================================="
-          
-          Write-Host "Using Quick preset configuration for $windowsVersion (minimal debloat, keeping Edge, Store, AI, Defender)"
-        } else {
-          # Custom options - parse debloat_options string
+        # Parse debloat options for all modes (unified approach)
+        if ($windowsVersion -eq "Custom (Full Options)") {
+          # Custom mode - use user-provided debloat options
           $debloatOptions = "${{ github.event.inputs.debloat_options }}"
-          Write-Host "Debloat options: $debloatOptions"
-          
-          # Parse options (format: edge:false,store:false,ai:false,defender:false,tpm:true,compress:true)
-          $options = @{}
-          $debloatOptions -split ',' | ForEach-Object {
-            $parts = $_ -split ':'
-            if ($parts.Length -eq 2) {
-              $options[$parts[0]] = $parts[1]
-            }
-          }
-          
-          # Set values based on parsed options
-          $edgeRemove = if ($options['edge'] -eq 'true') { "yes" } else { "no" }
-          $storeRemove = if ($options['store'] -eq 'true') { "yes" } else { "no" }
-          $aiRemove = if ($options['ai'] -eq 'true') { "yes" } else { "no" }
-          $defenderRemove = if ($options['defender'] -eq 'true') { "yes" } else { "no" }
-          $tpmBypass = if ($options['tpm'] -eq 'true') { "yes" } else { "no" }
-          $esdConvert = if ($options['compress'] -eq 'true') { "yes" } else { "no" }
-          
-          # Display what will be debloated
-          Write-Host "=== DEBLOAT CONFIGURATION ==="
-          Write-Host "Remove Microsoft Edge: $edgeRemove"
-          Write-Host "Remove Microsoft Store: $storeRemove"
-          Write-Host "Remove AI Components: $aiRemove"
-          Write-Host "Remove Windows Defender: $defenderRemove"
-          Write-Host "Bypass TPM Check: $tpmBypass"
-          Write-Host "Compress ISO: $esdConvert"
-          Write-Host "Remove Windows Features: yes"
-          Write-Host "Remove OneDrive: yes"
-          Write-Host "Enable User Folders: yes"
-          Write-Host "============================="
-          
-          $params += @(
-            "-AppxRemove", $storeRemove
-            "-CapabilitiesRemove", "yes"
-            "-OnedriveRemove", "yes"
-            "-EDGERemove", $edgeRemove
-            "-AIRemove", $aiRemove
-            "-TPMBypass", $tpmBypass
-            "-UserFoldersEnable", "yes"
-            "-ESDConvert", $esdConvert
-            "-useDISM", "no"
-          )
-          Write-Host "Using custom configuration with parsed options"
+          Write-Host "Using Custom mode with user-provided debloat options: $debloatOptions"
+        } else {
+          # Quick preset mode - use default minimal debloat options
+          $debloatOptions = "edge:false,store:false,ai:false,defender:false,tpm:true,compress:true"
+          Write-Host "Using Quick preset mode with default debloat options: $debloatOptions"
         }
+        
+        # Parse options (format: edge:false,store:false,ai:false,defender:false,tpm:true,compress:true)
+        $options = @{}
+        $debloatOptions -split ',' | ForEach-Object {
+          $parts = $_ -split ':'
+          if ($parts.Length -eq 2) {
+            $options[$parts[0]] = $parts[1]
+          }
+        }
+        
+        # Set values based on parsed options
+        $edgeRemove = if ($options['edge'] -eq 'true') { "yes" } else { "no" }
+        $storeRemove = if ($options['store'] -eq 'true') { "yes" } else { "no" }
+        $aiRemove = if ($options['ai'] -eq 'true') { "yes" } else { "no" }
+        $defenderRemove = if ($options['defender'] -eq 'true') { "yes" } else { "no" }
+        $tpmBypass = if ($options['tpm'] -eq 'true') { "yes" } else { "no" }
+        $esdConvert = if ($options['compress'] -eq 'true') { "yes" } else { "no" }
+        
+        # Display configuration
+        Write-Host "=== DEBLOAT CONFIGURATION ==="
+        Write-Host "Windows Version: $windowsVersion"
+        Write-Host "Windows Build: $windowsBuild"
+        Write-Host "Windows Edition: $windowsEdition"
+        Write-Host "Remove Microsoft Edge: $edgeRemove"
+        Write-Host "Remove Microsoft Store: $storeRemove"
+        Write-Host "Remove AI Components: $aiRemove"
+        Write-Host "Remove Windows Defender: $defenderRemove"
+        Write-Host "Bypass TPM Check: $tpmBypass"
+        Write-Host "Compress ISO: $esdConvert"
+        Write-Host "Remove Windows Features: yes"
+        Write-Host "Remove OneDrive: yes"
+        Write-Host "Enable User Folders: yes"
+        Write-Host "============================="
+        
+        # Apply debloat options to parameters
+        $params += @(
+          "-AppxRemove", $storeRemove
+          "-CapabilitiesRemove", "yes"
+          "-OnedriveRemove", "yes"
+          "-EDGERemove", $edgeRemove
+          "-AIRemove", $aiRemove
+          "-TPMBypass", $tpmBypass
+          "-UserFoldersEnable", "yes"
+          "-ESDConvert", $esdConvert
+          "-useDISM", "no"
+        )
+        
+        Write-Host "Using unified debloat configuration for $windowsVersion"
         
         Write-Host "Running Windows ISO Debloater..."
         Write-Host "Parameters: $($params -join ' ')"
@@ -458,6 +437,10 @@ jobs:
           - Bypass TPM: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && 'Custom' || '✅ (Quick preset - for compatibility)' }}
           - Enable User Folders: ✅
           - Compress ISO: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && 'Custom' || '✅ (Quick preset - smaller file)' }}
+          
+          **📝 Debloat Options Used:**
+          - Quick Preset: `edge:false,store:false,ai:false,defender:false,tpm:true,compress:true`
+          - Custom Mode: `${{ github.event.inputs.debloat_options }}`
           
           **📝 Debloat Options Format (for Custom mode):**
           ```
