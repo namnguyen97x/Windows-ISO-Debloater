@@ -35,51 +35,21 @@ on:
           - 'Windows 10 Home'
           - 'Windows 10 Enterprise'
         default: 'Windows 11 Pro'
-      remove_appx:
-        description: 'Xóa Microsoft Store apps'
-        required: true
-        type: boolean
-        default: true
-      remove_capabilities:
-        description: 'Xóa Windows features không cần thiết'
-        required: true
-        type: boolean
-        default: true
-      remove_onedrive:
-        description: 'Xóa OneDrive'
-        required: true
-        type: boolean
-        default: true
       remove_edge:
-        description: 'Xóa Microsoft Edge'
-        required: true
-        type: boolean
-        default: true
-      remove_ai:
-        description: 'Xóa AI Components'
-        required: true
+        description: 'Xóa Microsoft Edge (chỉ cho Custom mode)'
+        required: false
         type: boolean
         default: true
       bypass_tpm:
-        description: 'Bypass TPM check (chỉ dùng cho hardware cũ)'
-        required: true
+        description: 'Bypass TPM check (chỉ cho Custom mode)'
+        required: false
         type: boolean
         default: false
-      enable_user_folders:
-        description: 'Bật user folders trong Explorer'
-        required: true
-        type: boolean
-        default: true
       compress_iso:
-        description: 'Nén ISO (chậm nhưng giảm kích thước)'
-        required: true
+        description: 'Nén ISO (chỉ cho Custom mode)'
+        required: false
         type: boolean
         default: false
-      use_oscdimg:
-        description: 'Sử dụng oscdimg.exe (khuyến nghị)'
-        required: true
-        type: boolean
-        default: true
   schedule:
     # Chạy tự động mỗi thứ 2 lúc 2:00 AM UTC (9:00 AM VN)
     - cron: '0 2 * * 1'
@@ -239,17 +209,17 @@ jobs:
           )
           Write-Host "Using Quick preset configuration"
         } else {
-          # Custom options
+          # Custom options - sử dụng các inputs còn lại
           $params += @(
-            "-AppxRemove", if ("${{ github.event.inputs.remove_appx }}" -eq "true") { "yes" } else { "no" }
-            "-CapabilitiesRemove", if ("${{ github.event.inputs.remove_capabilities }}" -eq "true") { "yes" } else { "no" }
-            "-OnedriveRemove", if ("${{ github.event.inputs.remove_onedrive }}" -eq "true") { "yes" } else { "no" }
+            "-AppxRemove", "yes"
+            "-CapabilitiesRemove", "yes"
+            "-OnedriveRemove", "yes"
             "-EDGERemove", if ("${{ github.event.inputs.remove_edge }}" -eq "true") { "yes" } else { "no" }
-            "-AIRemove", if ("${{ github.event.inputs.remove_ai }}" -eq "true") { "yes" } else { "no" }
+            "-AIRemove", "yes"
             "-TPMBypass", if ("${{ github.event.inputs.bypass_tpm }}" -eq "true") { "yes" } else { "no" }
-            "-UserFoldersEnable", if ("${{ github.event.inputs.enable_user_folders }}" -eq "true") { "yes" } else { "no" }
+            "-UserFoldersEnable", "yes"
             "-ESDConvert", if ("${{ github.event.inputs.compress_iso }}" -eq "true") { "yes" } else { "no" }
-            "-useOscdimg", if ("${{ github.event.inputs.use_oscdimg }}" -eq "true") { "yes" } else { "no" }
+            "-useOscdimg", "yes"
           )
           Write-Host "Using custom configuration"
         }
@@ -313,14 +283,14 @@ jobs:
           - **ISO gốc:** ${{ github.event.inputs.iso_url || 'Preset URL' }}
           
           **⚙️ Cấu hình xử lý:**
-          ${{ github.event.inputs.preset == 'Custom (Full Options)' && format('- Xóa Microsoft Store apps: {0}', github.event.inputs.remove_appx) || '- Xóa Microsoft Store apps: ✅ (Quick preset)' }}
-          ${{ github.event.inputs.preset == 'Custom (Full Options)' && format('- Xóa Windows features: {0}', github.event.inputs.remove_capabilities) || '- Xóa Windows features: ✅ (Quick preset)' }}
-          ${{ github.event.inputs.preset == 'Custom (Full Options)' && format('- Xóa OneDrive: {0}', github.event.inputs.remove_onedrive) || '- Xóa OneDrive: ✅ (Quick preset)' }}
-          ${{ github.event.inputs.preset == 'Custom (Full Options)' && format('- Xóa Microsoft Edge: {0}', github.event.inputs.remove_edge) || '- Xóa Microsoft Edge: ✅ (Quick preset)' }}
-          ${{ github.event.inputs.preset == 'Custom (Full Options)' && format('- Xóa AI Components: {0}', github.event.inputs.remove_ai) || '- Xóa AI Components: ✅ (Quick preset)' }}
-          ${{ github.event.inputs.preset == 'Custom (Full Options)' && format('- Bypass TPM: {0}', github.event.inputs.bypass_tpm) || '- Bypass TPM: ❌ (Quick preset)' }}
-          ${{ github.event.inputs.preset == 'Custom (Full Options)' && format('- Bật user folders: {0}', github.event.inputs.enable_user_folders) || '- Bật user folders: ✅ (Quick preset)' }}
-          ${{ github.event.inputs.preset == 'Custom (Full Options)' && format('- Nén ISO: {0}', github.event.inputs.compress_iso) || '- Nén ISO: ❌ (Quick preset)' }}
+          - Xóa Microsoft Store apps: ✅
+          - Xóa Windows features: ✅
+          - Xóa OneDrive: ✅
+          - Xóa Microsoft Edge: ${{ github.event.inputs.preset == 'Custom (Full Options)' && (github.event.inputs.remove_edge == 'true' && '✅' || '❌') || '✅ (Quick preset)' }}
+          - Xóa AI Components: ✅
+          - Bypass TPM: ${{ github.event.inputs.preset == 'Custom (Full Options)' && (github.event.inputs.bypass_tpm == 'true' && '✅' || '❌') || '❌ (Quick preset)' }}
+          - Bật user folders: ✅
+          - Nén ISO: ${{ github.event.inputs.preset == 'Custom (Full Options)' && (github.event.inputs.compress_iso == 'true' && '✅' || '❌') || '❌ (Quick preset)' }}
           
           **⚠️ Lưu ý:** File này được tạo tự động bởi GitHub Actions. Vui lòng kiểm tra kỹ trước khi sử dụng.
           
