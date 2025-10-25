@@ -321,7 +321,7 @@ jobs:
             "-TPMBypass", "yes"
             "-UserFoldersEnable", "yes"
             "-ESDConvert", "yes"
-            "-useOscdimg", "yes"
+            "-useDISM", "no"
           )
           # Display Quick preset configuration
           Write-Host "=== QUICK PRESET CONFIGURATION ==="
@@ -384,7 +384,7 @@ jobs:
             "-TPMBypass", $tpmBypass
             "-UserFoldersEnable", "yes"
             "-ESDConvert", $esdConvert
-            "-useOscdimg", "yes"
+            "-useDISM", "no"
           )
           Write-Host "Using custom configuration with parsed options"
         }
