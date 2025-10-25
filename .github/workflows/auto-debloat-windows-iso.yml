@@ -94,11 +94,11 @@ jobs:
         # Xác định URL ISO dựa trên preset
         switch ($preset) {
           "Windows 11 Pro (Quick)" { 
-            $isoUrl = "https://dn721607.ca.archive.org/0/items/windows-11-24h2-iso_202501/Win11_24H2_English_x64.iso"
+            $isoUrl = "https://software.download.prss.microsoft.com/dbazure/Win11_25H2_English_x64.iso?t=d1a5a3e8-32ba-4bf6-9655-3b1785b1d44e&P1=1761468171&P2=601&P3=2&P4=TgPmVnaRJIXKrWv3dnoKNVmTq4NCRPTaIepZB4fjx3zqeC2YX36KRov6nULxRH9uLKMNbzJ4fkcOrVe4sYSQPf2BwqD3E%2bb8fH12uNiI9qKow8WjDQiasCkH%2b69Uc66%2f9Gro5OcswLtPby99e0pB5le6PSnu2t1yMkAAjNCaJ7s6%2bUicJ39K2aEHDUjbU7hYasU6BuQUqz0xeSEptTeZLpgo7UXa2OykZ3w3s2gzaugyEojm%2btNQl8EMmiUbN1Ol3Yn5GNuDrEzlYV6WIKhw6LnxOkdzlATRI0lEiTM%2fWX3v%2fnvKAf5fsOMxVJdlQlPh2iQbUzxfe6GURVzfKxQ3pQ%3d%3d"
             $winEdition = "Windows 11 Pro"
           }
           "Windows 11 Home (Quick)" { 
-            $isoUrl = "https://dn721607.ca.archive.org/0/items/windows-11-24h2-iso_202501/Win11_24H2_English_x64.iso"
+            $isoUrl = "https://software.download.prss.microsoft.com/dbazure/Win11_25H2_English_x64.iso?t=d1a5a3e8-32ba-4bf6-9655-3b1785b1d44e&P1=1761468171&P2=601&P3=2&P4=TgPmVnaRJIXKrWv3dnoKNVmTq4NCRPTaIepZB4fjx3zqeC2YX36KRov6nULxRH9uLKMNbzJ4fkcOrVe4sYSQPf2BwqD3E%2bb8fH12uNiI9qKow8WjDQiasCkH%2b69Uc66%2f9Gro5OcswLtPby99e0pB5le6PSnu2t1yMkAAjNCaJ7s6%2bUicJ39K2aEHDUjbU7hYasU6BuQUqz0xeSEptTeZLpgo7UXa2OykZ3w3s2gzaugyEojm%2btNQl8EMmiUbN1Ol3Yn5GNuDrEzlYV6WIKhw6LnxOkdzlATRI0lEiTM%2fWX3v%2fnvKAf5fsOMxVJdlQlPh2iQbUzxfe6GURVzfKxQ3pQ%3d%3d"
             $winEdition = "Windows 11 Home"
           }
           "Windows 10 Pro (Quick)" { 
@@ -110,7 +110,7 @@ jobs:
             $winEdition = "Windows 10 Home"
           }
           default { 
-            $isoUrl = if ($customUrl) { $customUrl } else { "https://dn721607.ca.archive.org/0/items/windows-11-24h2-iso_202501/Win11_24H2_English_x64.iso" }
+            $isoUrl = if ($customUrl) { $customUrl } else { "https://software.download.prss.microsoft.com/dbazure/Win11_25H2_English_x64.iso?t=d1a5a3e8-32ba-4bf6-9655-3b1785b1d44e&P1=1761468171&P2=601&P3=2&P4=TgPmVnaRJIXKrWv3dnoKNVmTq4NCRPTaIepZB4fjx3zqeC2YX36KRov6nULxRH9uLKMNbzJ4fkcOrVe4sYSQPf2BwqD3E%2bb8fH12uNiI9qKow8WjDQiasCkH%2b69Uc66%2f9Gro5OcswLtPby99e0pB5le6PSnu2t1yMkAAjNCaJ7s6%2bUicJ39K2aEHDUjbU7hYasU6BuQUqz0xeSEptTeZLpgo7UXa2OykZ3w3s2gzaugyEojm%2btNQl8EMmiUbN1Ol3Yn5GNuDrEzlYV6WIKhw6LnxOkdzlATRI0lEiTM%2fWX3v%2fnvKAf5fsOMxVJdlQlPh2iQbUzxfe6GURVzfKxQ3pQ%3d%3d" }
             $winEdition = "${{ github.event.inputs.win_edition }}"
           }
         }
@@ -132,10 +132,10 @@ jobs:
         
         # Fallback URLs nếu URL chính fail - sử dụng URLs hoạt động
         $fallbackUrls = @(
+          "https://software.download.prss.microsoft.com/dbazure/Win11_25H2_English_x64.iso?t=d1a5a3e8-32ba-4bf6-9655-3b1785b1d44e&P1=1761468171&P2=601&P3=2&P4=TgPmVnaRJIXKrWv3dnoKNVmTq4NCRPTaIepZB4fjx3zqeC2YX36KRov6nULxRH9uLKMNbzJ4fkcOrVe4sYSQPf2BwqD3E%2bb8fH12uNiI9qKow8WjDQiasCkH%2b69Uc66%2f9Gro5OcswLtPby99e0pB5le6PSnu2t1yMkAAjNCaJ7s6%2bUicJ39K2aEHDUjbU7hYasU6BuQUqz0xeSEptTeZLpgo7UXa2OykZ3w3s2gzaugyEojm%2btNQl8EMmiUbN1Ol3Yn5GNuDrEzlYV6WIKhw6LnxOkdzlATRI0lEiTM%2fWX3v%2fnvKAf5fsOMxVJdlQlPh2iQbUzxfe6GURVzfKxQ3pQ%3d%3d",
           "https://software-download.microsoft.com/download/pr/444969d5-f34g-4e03-ac9d-1f9786c69161/Win11_24H2_English_x64v1.iso",
           "https://software-download.microsoft.com/download/sg/444969d5-f34g-4e03-ac9d-1f9786c69161/Win11_24H2_English_x64v1.iso",
-          "https://go.microsoft.com/fwlink/p/?LinkId=2124703",
-          "https://www.microsoft.com/en-us/software-download/windows11"
+          "https://go.microsoft.com/fwlink/p/?LinkId=2124703"
         )
         
         $downloadSuccess = $false
