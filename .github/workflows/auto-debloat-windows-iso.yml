@@ -301,14 +301,6 @@ jobs:
         $winEdition = $env:WIN_EDITION
         $windowsVersion = "${{ github.event.inputs.windows_version }}"
         
-        # Chuẩn bị parameters cơ bản
-        $params = @(
-          "-noPrompt"
-          "-isoPath", "`"$isoPath`""
-          "-winEdition", "`"$winEdition`""
-          "-outputISO", "`"$outputISO`""
-        )
-        
         # Parse debloat options for all modes (unified approach)
         if ($windowsVersion -eq "Custom (Full Options)") {
           # Custom mode - use user-provided debloat options
@@ -353,27 +345,13 @@ jobs:
         Write-Host "Enable User Folders: yes"
         Write-Host "============================="
         
-        # Apply debloat options to parameters
-        $params += @(
-          "-AppxRemove", $storeRemove
-          "-CapabilitiesRemove", "yes"
-          "-OnedriveRemove", "yes"
-          "-EDGERemove", $edgeRemove
-          "-AIRemove", $aiRemove
-          "-TPMBypass", $tpmBypass
-          "-UserFoldersEnable", "yes"
-          "-ESDConvert", $esdConvert
-          "-useOscdimg", "yes"
-        )
-        
         Write-Host "Using unified debloat configuration for $windowsVersion"
         
         Write-Host "Running Windows ISO Debloater..."
-        Write-Host "Parameters: $($params -join ' ')"
         
-        # Chạy script
+        # Chạy script với parameters riêng biệt
         try {
-          & ".\isoDebloaterScript.ps1" @params
+          & ".\isoDebloaterScript.ps1" -noPrompt -isoPath "`"$isoPath`"" -winEdition "`"$winEdition`"" -outputISO "`"$outputISO`"" -AppxRemove $storeRemove -CapabilitiesRemove "yes" -OnedriveRemove "yes" -EDGERemove $edgeRemove -AIRemove $aiRemove -TPMBypass $tpmBypass -UserFoldersEnable "yes" -ESDConvert $esdConvert -useOscdimg "yes"
           
           if ($LASTEXITCODE -ne 0) {
             throw "Script exited with code: $LASTEXITCODE"
