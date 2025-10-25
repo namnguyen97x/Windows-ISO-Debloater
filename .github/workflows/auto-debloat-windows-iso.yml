@@ -431,8 +431,10 @@ jobs:
             # Extract Office Tool Plus
             Expand-Archive -Path $officeToolPath -DestinationPath $officeToolDir -Force
             
-            # Create Office installation configuration
-            $officeConfig = @"
+            # Create Office installation configuration based on edition
+            $officeConfig = switch ($officeEdition) {
+              "Office 2021 Pro Plus" {
+                @"
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration>
   <Add OfficeClientEdition="64" Channel="PerpetualVL2021">
@@ -444,24 +446,144 @@ jobs:
   <Property Name="AUTOACTIVATE" Value="1" />
 </Configuration>
 "@
+              }
+              "Office 2019 Pro Plus" {
+                @"
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+  <Add OfficeClientEdition="64" Channel="PerpetualVL2019">
+    <Product ID="ProPlus2019Volume">
+      <Language ID="en-us" />
+    </Product>
+  </Add>
+  <Display Level="None" AcceptEULA="TRUE" />
+  <Property Name="AUTOACTIVATE" Value="1" />
+</Configuration>
+"@
+              }
+              "Office 365 Pro Plus" {
+                @"
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+  <Add OfficeClientEdition="64" Channel="Current">
+    <Product ID="O365ProPlusRetail">
+      <Language ID="en-us" />
+    </Product>
+  </Add>
+  <Display Level="None" AcceptEULA="TRUE" />
+</Configuration>
+"@
+              }
+            }
             
             # Save configuration
             $configPath = "$officeToolDir\config.xml"
             $officeConfig | Out-File -FilePath $configPath -Encoding UTF8
             
             Write-Host "Office configuration created: $configPath"
-            Write-Host "Office installation will be integrated into the ISO"
+            Write-Host "Office Edition: $officeEdition"
             
-            # Note: Office installation will be handled by the debloater script
-            # This step prepares the Office Tool Plus for integration
+            # Download Office files using Office Tool Plus
+            Write-Host "Downloading Office files..."
+            $officeToolExe = Get-ChildItem -Path $officeToolDir -Filter "*.exe" | Select-Object -First 1
+            if ($officeToolExe) {
+              # Run Office Tool Plus to download Office
+              $downloadArgs = @(
+                "--download",
+                "--config", $configPath,
+                "--output", "$officeToolDir\OfficeFiles"
+              )
+              
+              Write-Host "Running: $($officeToolExe.FullName) $($downloadArgs -join ' ')"
+              $downloadProcess = Start-Process -FilePath $officeToolExe.FullName -ArgumentList $downloadArgs -Wait -PassThru -RedirectStandardOutput "office_download.txt" -RedirectStandardError "office_download_error.txt"
+              
+              if ($downloadProcess.ExitCode -eq 0) {
+                Write-Host "Office files downloaded successfully"
+                
+                # Display download output
+                if (Test-Path "office_download.txt") {
+                  Write-Host "=== OFFICE DOWNLOAD OUTPUT ==="
+                  Get-Content "office_download.txt" | Write-Host
+                  Write-Host "=============================="
+                }
+              } else {
+                Write-Warning "Office download failed with exit code: $($downloadProcess.ExitCode)"
+                if (Test-Path "office_download_error.txt") {
+                  Write-Host "=== OFFICE DOWNLOAD ERRORS ==="
+                  Get-Content "office_download_error.txt" | Write-Host
+                  Write-Host "============================="
+                }
+              }
+            } else {
+              Write-Warning "Office Tool Plus executable not found"
+            }
+            
+          Write-Host "Office preparation completed. Files will be integrated into the ISO."
+          
+        }
+        catch {
+          Write-Warning "Failed to prepare Office installation: $_"
+          Write-Host "Continuing without Office installation..."
+        }
+      } else {
+        Write-Host "Office installation skipped (install_office = false)"
+      }
+      
+    - name: Integrate Office into ISO
+      if: github.event.inputs.install_office == 'true'
+      run: |
+        $installOffice = "${{ github.event.inputs.install_office }}"
+        $officeEdition = "${{ github.event.inputs.office_edition }}"
+        
+        if ($installOffice -eq "true") {
+          Write-Host "=== INTEGRATING OFFICE INTO ISO ==="
+          Write-Host "Office Edition: $officeEdition"
+          Write-Host "==================================="
+          
+          try {
+            $officeToolDir = "$env:ISO_DOWNLOAD_PATH\OfficeTool"
+            $officeFilesDir = "$officeToolDir\OfficeFiles"
+            $outputISO = "${{ github.event.inputs.iso_filename }}.iso"
+            
+            # Check if Office files were downloaded
+            if (Test-Path $officeFilesDir) {
+              Write-Host "Office files found at: $officeFilesDir"
+              
+              # Create Office installation script for post-installation
+              $officeInstallScript = @"
+@echo off
+echo Installing Office...
+cd /d "%~dp0"
+if exist "OfficeTool\OfficeTool.exe" (
+    OfficeTool\OfficeTool.exe --install --config OfficeTool\config.xml
+    echo Office installation completed.
+) else (
+    echo Office Tool Plus not found.
+)
+pause
+"@
+              
+              # Save installation script
+              $scriptPath = "$officeToolDir\InstallOffice.bat"
+              $officeInstallScript | Out-File -FilePath $scriptPath -Encoding ASCII
+              
+              Write-Host "Office installation script created: $scriptPath"
+              Write-Host "Office files and installation script will be included in the ISO"
+              
+              # Note: The actual integration into the ISO will be handled by the debloater script
+              # This step prepares the Office files and installation script
+              
+            } else {
+              Write-Warning "Office files not found. Office integration skipped."
+            }
             
           }
           catch {
-            Write-Warning "Failed to prepare Office installation: $_"
-            Write-Host "Continuing without Office installation..."
+            Write-Warning "Failed to integrate Office into ISO: $_"
+            Write-Host "Continuing without Office integration..."
           }
         } else {
-          Write-Host "Office installation skipped (install_office = false)"
+          Write-Host "Office integration skipped (install_office = false)"
         }
         
     - name: Check output ISO
