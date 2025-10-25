@@ -270,8 +270,15 @@ jobs:
           $mountPath = "${driveLetter}:\"
           
           # Kiểm tra các file cần thiết
-          $requiredFiles = @("sources\install.wim", "sources\install.esd", "bootmgr", "bootmgr.efi")
+          $requiredFiles = @("bootmgr", "bootmgr.efi")
           $missingFiles = @()
+          
+          # Check for either install.wim or install.esd
+          $installWimPath = Join-Path $mountPath "sources\install.wim"
+          $installEsdPath = Join-Path $mountPath "sources\install.esd"
+          if (-not (Test-Path $installWimPath) -and -not (Test-Path $installEsdPath)) {
+            $missingFiles += "sources\install.wim (or install.esd)"
+          }
           
           foreach ($file in $requiredFiles) {
             if (-not (Test-Path (Join-Path $mountPath $file))) {

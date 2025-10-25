@@ -1549,7 +1549,13 @@ if (Test-Path -Path $ISOFile) {
         $verifyMntResult = Mount-DiskImage -ImagePath "$ISOFile" -PassThru
         $verifyDrive = ($verifyMntResult | Get-Volume).DriveLetter
         $isoMountPoint = "${verifyDrive}:\"
-        $reqFiles = @("sources\install.wim", "sources\boot.wim", "boot\bcd", "boot\boot.sdi", "bootmgr", "bootmgr.efi", "efi\microsoft\boot\efisys.bin")
+        $reqFiles = @("sources\boot.wim", "boot\bcd", "boot\boot.sdi", "bootmgr", "bootmgr.efi", "efi\microsoft\boot\efisys.bin")
+        # Check for either install.wim or install.esd
+        $installWimPath = Join-Path $isoMountPoint "sources\install.wim"
+        $installEsdPath = Join-Path $isoMountPoint "sources\install.esd"
+        if (-not (Test-Path $installWimPath) -and -not (Test-Path $installEsdPath)) {
+            $reqFiles += "sources\install.wim (or install.esd)"
+        }
         $missingFiles = $reqFiles | Where-Object { -not (Test-Path (Join-Path $isoMountPoint $_)) }
 
         Dismount-DiskImage -ImagePath "$ISOFile" 2>&1 | Write-Log
