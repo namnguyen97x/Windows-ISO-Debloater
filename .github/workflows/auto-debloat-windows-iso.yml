@@ -2,18 +2,33 @@ name: Windows ISO Debloater
 
 on:
   workflow_dispatch:
-    inputs:
-      preset:
-        description: 'Chọn preset hoặc tùy chỉnh'
-        required: true
-        type: choice
-        options:
-          - 'Windows 11 Pro (Quick)'
-          - 'Windows 11 Home (Quick)'
-          - 'Windows 10 Pro (Quick)'
-          - 'Windows 10 Home (Quick)'
-          - 'Custom (Full Options)'
-        default: 'Windows 11 Pro (Quick)'
+            inputs:
+              windows_version:
+                description: 'Chọn phiên bản Windows'
+                required: true
+                type: choice
+                options:
+                  - 'Windows 11'
+                  - 'Windows 10'
+                  - 'Custom (Full Options)'
+                default: 'Windows 11'
+              windows_build:
+                description: 'Chọn build Windows (chỉ áp dụng cho Windows 11)'
+                required: false
+                type: choice
+                options:
+                  - '25H2 (Latest)'
+                  - '24H2'
+                default: '25H2 (Latest)'
+              windows_edition:
+                description: 'Chọn phiên bản Windows'
+                required: true
+                type: choice
+                options:
+                  - 'Pro'
+                  - 'Home'
+                  - 'Enterprise'
+                default: 'Pro'
       iso_url:
         description: 'URL của Windows ISO (để trống nếu dùng preset). Lấy từ: https://www.microsoft.com/en-us/software-download/windows11'
         required: false
@@ -88,30 +103,29 @@ jobs:
         
     - name: Setup ISO URL and Configuration
       run: |
-        $preset = "${{ github.event.inputs.preset }}"
+        $windowsVersion = "${{ github.event.inputs.windows_version }}"
+        $windowsBuild = "${{ github.event.inputs.windows_build }}"
+        $windowsEdition = "${{ github.event.inputs.windows_edition }}"
         $customUrl = "${{ github.event.inputs.iso_url }}"
         
-        # Xác định URL ISO dựa trên preset
-        switch ($preset) {
-          "Windows 11 Pro (Quick)" { 
-            $isoUrl = "https://software.download.prss.microsoft.com/dbazure/Win11_25H2_English_x64.iso?t=d1a5a3e8-32ba-4bf6-9655-3b1785b1d44e&P1=1761468171&P2=601&P3=2&P4=TgPmVnaRJIXKrWv3dnoKNVmTq4NCRPTaIepZB4fjx3zqeC2YX36KRov6nULxRH9uLKMNbzJ4fkcOrVe4sYSQPf2BwqD3E%2bb8fH12uNiI9qKow8WjDQiasCkH%2b69Uc66%2f9Gro5OcswLtPby99e0pB5le6PSnu2t1yMkAAjNCaJ7s6%2bUicJ39K2aEHDUjbU7hYasU6BuQUqz0xeSEptTeZLpgo7UXa2OykZ3w3s2gzaugyEojm%2btNQl8EMmiUbN1Ol3Yn5GNuDrEzlYV6WIKhw6LnxOkdzlATRI0lEiTM%2fWX3v%2fnvKAf5fsOMxVJdlQlPh2iQbUzxfe6GURVzfKxQ3pQ%3d%3d"
-            $winEdition = "Windows 11 Pro"
-          }
-          "Windows 11 Home (Quick)" { 
-            $isoUrl = "https://software.download.prss.microsoft.com/dbazure/Win11_25H2_English_x64.iso?t=d1a5a3e8-32ba-4bf6-9655-3b1785b1d44e&P1=1761468171&P2=601&P3=2&P4=TgPmVnaRJIXKrWv3dnoKNVmTq4NCRPTaIepZB4fjx3zqeC2YX36KRov6nULxRH9uLKMNbzJ4fkcOrVe4sYSQPf2BwqD3E%2bb8fH12uNiI9qKow8WjDQiasCkH%2b69Uc66%2f9Gro5OcswLtPby99e0pB5le6PSnu2t1yMkAAjNCaJ7s6%2bUicJ39K2aEHDUjbU7hYasU6BuQUqz0xeSEptTeZLpgo7UXa2OykZ3w3s2gzaugyEojm%2btNQl8EMmiUbN1Ol3Yn5GNuDrEzlYV6WIKhw6LnxOkdzlATRI0lEiTM%2fWX3v%2fnvKAf5fsOMxVJdlQlPh2iQbUzxfe6GURVzfKxQ3pQ%3d%3d"
-            $winEdition = "Windows 11 Home"
-          }
-          "Windows 10 Pro (Quick)" { 
+        # Xác định URL ISO dựa trên menu selection
+        if ($windowsVersion -eq "Custom (Full Options)") {
+          # Custom mode - sử dụng URL từ input hoặc default
+          $isoUrl = if ($customUrl) { $customUrl } else { "https://software.download.prss.microsoft.com/dbazure/Win11_25H2_English_x64.iso?t=d1a5a3e8-32ba-4bf6-9655-3b1785b1d44e&P1=1761468171&P2=601&P3=2&P4=TgPmVnaRJIXKrWv3dnoKNVmTq4NCRPTaIepZB4fjx3zqeC2YX36KRov6nULxRH9uLKMNbzJ4fkcOrVe4sYSQPf2BwqD3E%2bb8fH12uNiI9qKow8WjDQiasCkH%2b69Uc66%2f9Gro5OcswLtPby99e0pB5le6PSnu2t1yMkAAjNCaJ7s6%2bUicJ39K2aEHDUjbU7hYasU6BuQUqz0xeSEptTeZLpgo7UXa2OykZ3w3s2gzaugyEojm%2btNQl8EMmiUbN1Ol3Yn5GNuDrEzlYV6WIKhw6LnxOkdzlATRI0lEiTM%2fWX3v%2fnvKAf5fsOMxVJdlQlPh2iQbUzxfe6GURVzfKxQ3pQ%3d%3d" }
+          $winEdition = "${{ github.event.inputs.win_edition }}"
+        } else {
+          # Quick preset mode - xây dựng từ menu selections
+          $winEdition = "$windowsVersion $windowsEdition"
+          
+          if ($windowsVersion -eq "Windows 11") {
+            if ($windowsBuild -eq "25H2 (Latest)") {
+              $isoUrl = "https://software.download.prss.microsoft.com/dbazure/Win11_25H2_English_x64.iso?t=d1a5a3e8-32ba-4bf6-9655-3b1785b1d44e&P1=1761468171&P2=601&P3=2&P4=TgPmVnaRJIXKrWv3dnoKNVmTq4NCRPTaIepZB4fjx3zqeC2YX36KRov6nULxRH9uLKMNbzJ4fkcOrVe4sYSQPf2BwqD3E%2bb8fH12uNiI9qKow8WjDQiasCkH%2b69Uc66%2f9Gro5OcswLtPby99e0pB5le6PSnu2t1yMkAAjNCaJ7s6%2bUicJ39K2aEHDUjbU7hYasU6BuQUqz0xeSEptTeZLpgo7UXa2OykZ3w3s2gzaugyEojm%2btNQl8EMmiUbN1Ol3Yn5GNuDrEzlYV6WIKhw6LnxOkdzlATRI0lEiTM%2fWX3v%2fnvKAf5fsOMxVJdlQlPh2iQbUzxfe6GURVzfKxQ3pQ%3d%3d"
+            } else {
+              # 24H2 fallback
+              $isoUrl = "https://software-download.microsoft.com/download/pr/444969d5-f34g-4e03-ac9d-1f9786c69161/Win11_24H2_English_x64v1.iso"
+            }
+          } elseif ($windowsVersion -eq "Windows 10") {
             $isoUrl = "https://software-download.microsoft.com/download/pr/444969d5-f34g-4e03-ac9d-1f9786c69161/Win10_22H2_English_x64v1.iso"
-            $winEdition = "Windows 10 Pro"
-          }
-          "Windows 10 Home (Quick)" { 
-            $isoUrl = "https://software-download.microsoft.com/download/pr/444969d5-f34g-4e03-ac9d-1f9786c69161/Win10_22H2_English_x64v1.iso"
-            $winEdition = "Windows 10 Home"
-          }
-          default { 
-            $isoUrl = if ($customUrl) { $customUrl } else { "https://software.download.prss.microsoft.com/dbazure/Win11_25H2_English_x64.iso?t=d1a5a3e8-32ba-4bf6-9655-3b1785b1d44e&P1=1761468171&P2=601&P3=2&P4=TgPmVnaRJIXKrWv3dnoKNVmTq4NCRPTaIepZB4fjx3zqeC2YX36KRov6nULxRH9uLKMNbzJ4fkcOrVe4sYSQPf2BwqD3E%2bb8fH12uNiI9qKow8WjDQiasCkH%2b69Uc66%2f9Gro5OcswLtPby99e0pB5le6PSnu2t1yMkAAjNCaJ7s6%2bUicJ39K2aEHDUjbU7hYasU6BuQUqz0xeSEptTeZLpgo7UXa2OykZ3w3s2gzaugyEojm%2btNQl8EMmiUbN1Ol3Yn5GNuDrEzlYV6WIKhw6LnxOkdzlATRI0lEiTM%2fWX3v%2fnvKAf5fsOMxVJdlQlPh2iQbUzxfe6GURVzfKxQ3pQ%3d%3d" }
-            $winEdition = "${{ github.event.inputs.win_edition }}"
           }
         }
         
@@ -320,7 +334,7 @@ jobs:
         $isoPath = "$env:ISO_DOWNLOAD_PATH\windows.iso"
         $outputISO = "${{ github.event.inputs.iso_filename }}"
         $winEdition = $env:WIN_EDITION
-        $preset = "${{ github.event.inputs.preset }}"
+        $windowsVersion = "${{ github.event.inputs.windows_version }}"
         
         # Chuẩn bị parameters cơ bản
         $params = @(
@@ -331,8 +345,8 @@ jobs:
         )
         
         # Xử lý preset hoặc custom options
-        if ($preset -like "*Quick*") {
-          # Preset tối ưu - chỉ xóa những thứ cơ bản, giữ lại các tùy chọn cho user
+        if ($windowsVersion -ne "Custom (Full Options)") {
+          # Quick preset mode - tối ưu cho tất cả Windows versions
           $params += @(
             "-AppxRemove", "no"
             "-CapabilitiesRemove", "yes"
@@ -344,7 +358,7 @@ jobs:
             "-ESDConvert", "yes"
             "-useOscdimg", "yes"
           )
-          Write-Host "Using Quick preset configuration (minimal debloat, keeping Edge, Store, AI, Defender)"
+          Write-Host "Using Quick preset configuration for $windowsVersion (minimal debloat, keeping Edge, Store, AI, Defender)"
         } else {
           # Custom options - sử dụng tất cả inputs
           # Xác định giá trị cho từng option
@@ -421,21 +435,22 @@ jobs:
           ## 🚀 Windows ISO đã được xử lý tự động
           
           **📋 Thông tin:**
-          - **Preset:** ${{ github.event.inputs.preset }}
-          - **Phiên bản:** ${{ github.event.inputs.win_edition }}
+          - **Windows Version:** ${{ github.event.inputs.windows_version }}
+          - **Windows Build:** ${{ github.event.inputs.windows_build }}
+          - **Windows Edition:** ${{ github.event.inputs.windows_edition }}
           - **Tên file:** ${{ github.event.inputs.iso_filename }}.iso
           - **ISO gốc:** ${{ github.event.inputs.iso_url || 'Preset URL' }}
           
           **⚙️ Cấu hình xử lý:**
-          - Xóa Microsoft Store: ${{ github.event.inputs.preset == 'Custom (Full Options)' && (github.event.inputs.remove_msstore == 'true' && '✅' || '❌') || '❌ (Quick preset - giữ lại)' }}
+          - Xóa Microsoft Store: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && (github.event.inputs.remove_msstore == 'true' && '✅' || '❌') || '❌ (Quick preset - giữ lại)' }}
           - Xóa Windows features: ✅
           - Xóa OneDrive: ✅
-          - Xóa Microsoft Edge: ${{ github.event.inputs.preset == 'Custom (Full Options)' && (github.event.inputs.remove_edge == 'true' && '✅' || '❌') || '❌ (Quick preset - giữ lại)' }}
-          - Xóa AI Components: ${{ github.event.inputs.preset == 'Custom (Full Options)' && (github.event.inputs.remove_ai == 'true' && '✅' || '❌') || '❌ (Quick preset - giữ lại)' }}
-          - Xóa Windows Defender: ${{ github.event.inputs.preset == 'Custom (Full Options)' && (github.event.inputs.remove_defender == 'true' && '✅' || '❌') || '❌ (Quick preset - giữ lại)' }}
-          - Bypass TPM: ${{ github.event.inputs.preset == 'Custom (Full Options)' && (github.event.inputs.bypass_tpm == 'true' && '✅' || '❌') || '✅ (Quick preset - for better compatibility)' }}
+          - Xóa Microsoft Edge: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && (github.event.inputs.remove_edge == 'true' && '✅' || '❌') || '❌ (Quick preset - giữ lại)' }}
+          - Xóa AI Components: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && (github.event.inputs.remove_ai == 'true' && '✅' || '❌') || '❌ (Quick preset - giữ lại)' }}
+          - Xóa Windows Defender: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && (github.event.inputs.remove_defender == 'true' && '✅' || '❌') || '❌ (Quick preset - giữ lại)' }}
+          - Bypass TPM: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && (github.event.inputs.bypass_tpm == 'true' && '✅' || '❌') || '✅ (Quick preset - for better compatibility)' }}
           - Bật user folders: ✅
-          - Nén ISO: ${{ github.event.inputs.preset == 'Custom (Full Options)' && (github.event.inputs.compress_iso == 'true' && '✅' || '❌') || '✅ (Quick preset - for smaller file size)' }}
+          - Nén ISO: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && (github.event.inputs.compress_iso == 'true' && '✅' || '❌') || '✅ (Quick preset - for smaller file size)' }}
           
           **⚠️ Lưu ý:** File này được tạo tự động bởi GitHub Actions. Vui lòng kiểm tra kỹ trước khi sử dụng.
           
