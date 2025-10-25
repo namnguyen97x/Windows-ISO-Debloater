@@ -1,0 +1,19 @@
+name: Test Simple Workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_input:
+        description: 'Test input'
+        required: true
+        type: string
+        default: 'test'
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - name: Test step
+        run: |
+          Write-Host "Test workflow is working!"
+          Write-Host "Input: ${{ github.event.inputs.test_input }}"

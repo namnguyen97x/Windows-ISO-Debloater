@@ -38,36 +38,11 @@ on:
         required: true
         type: string
         default: 'Windows_Debloated'
-      remove_edge:
-        description: 'Xóa Microsoft Edge'
+      custom_options:
+        description: 'Tùy chọn tùy chỉnh (chỉ dùng với Custom mode)'
         required: false
-        type: boolean
-        default: false
-      remove_msstore:
-        description: 'Xóa Microsoft Store'
-        required: false
-        type: boolean
-        default: false
-      remove_ai:
-        description: 'Xóa AI Components'
-        required: false
-        type: boolean
-        default: false
-      remove_defender:
-        description: 'Xóa Windows Defender'
-        required: false
-        type: boolean
-        default: false
-      bypass_tpm:
-        description: 'Bypass TPM check'
-        required: false
-        type: boolean
-        default: true
-      compress_iso:
-        description: 'Nén ISO'
-        required: false
-        type: boolean
-        default: true
+        type: string
+        default: 'edge:false,store:false,ai:false,defender:false,tpm:true,compress:true'
   schedule:
     # Chạy tự động mỗi thứ 2 lúc 2:00 AM UTC (9:00 AM VN)
     - cron: '0 2 * * 1'
@@ -348,16 +323,29 @@ jobs:
           )
           Write-Host "Using Quick preset configuration for $windowsVersion (minimal debloat, keeping Edge, Store, AI, Defender)"
         } else {
-          # Custom options - sử dụng tất cả inputs
-          # Xác định giá trị cho từng option
-          $appxRemove = if ("${{ github.event.inputs.remove_msstore }}" -eq "true") { "yes" } else { "no" }
-          $edgeRemove = if ("${{ github.event.inputs.remove_edge }}" -eq "true") { "yes" } else { "no" }
-          $aiRemove = if ("${{ github.event.inputs.remove_ai }}" -eq "true") { "yes" } else { "no" }
-          $tpmBypass = if ("${{ github.event.inputs.bypass_tpm }}" -eq "true") { "yes" } else { "no" }
-          $esdConvert = if ("${{ github.event.inputs.compress_iso }}" -eq "true") { "yes" } else { "no" }
+          # Custom options - parse custom_options string
+          $customOptions = "${{ github.event.inputs.custom_options }}"
+          Write-Host "Custom options: $customOptions"
+          
+          # Parse options (format: edge:false,store:false,ai:false,defender:false,tpm:true,compress:true)
+          $options = @{}
+          $customOptions -split ',' | ForEach-Object {
+            $parts = $_ -split ':'
+            if ($parts.Length -eq 2) {
+              $options[$parts[0]] = $parts[1]
+            }
+          }
+          
+          # Set default values if not specified
+          $edgeRemove = if ($options['edge'] -eq 'true') { "yes" } else { "no" }
+          $storeRemove = if ($options['store'] -eq 'true') { "yes" } else { "no" }
+          $aiRemove = if ($options['ai'] -eq 'true') { "yes" } else { "no" }
+          $defenderRemove = if ($options['defender'] -eq 'true') { "yes" } else { "no" }
+          $tpmBypass = if ($options['tpm'] -eq 'true') { "yes" } else { "no" }
+          $esdConvert = if ($options['compress'] -eq 'true') { "yes" } else { "no" }
           
           $params += @(
-            "-AppxRemove", $appxRemove
+            "-AppxRemove", $storeRemove
             "-CapabilitiesRemove", "yes"
             "-OnedriveRemove", "yes"
             "-EDGERemove", $edgeRemove
@@ -367,7 +355,7 @@ jobs:
             "-ESDConvert", $esdConvert
             "-useOscdimg", "yes"
           )
-          Write-Host "Using custom configuration with user-selected options"
+          Write-Host "Using custom configuration with parsed options"
         }
         
         Write-Host "Running Windows ISO Debloater..."
@@ -430,15 +418,15 @@ jobs:
           - **ISO gốc:** ${{ github.event.inputs.iso_url || 'Preset URL' }}
           
           **⚙️ Cấu hình xử lý:**
-          - Xóa Microsoft Store: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && (github.event.inputs.remove_msstore == 'true' && '✅' || '❌') || '❌ (Quick preset - giữ lại)' }}
+          - Xóa Microsoft Store: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && 'Tùy chỉnh' || '❌ (Quick preset - giữ lại)' }}
           - Xóa Windows features: ✅
           - Xóa OneDrive: ✅
-          - Xóa Microsoft Edge: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && (github.event.inputs.remove_edge == 'true' && '✅' || '❌') || '❌ (Quick preset - giữ lại)' }}
-          - Xóa AI Components: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && (github.event.inputs.remove_ai == 'true' && '✅' || '❌') || '❌ (Quick preset - giữ lại)' }}
-          - Xóa Windows Defender: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && (github.event.inputs.remove_defender == 'true' && '✅' || '❌') || '❌ (Quick preset - giữ lại)' }}
-          - Bypass TPM: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && (github.event.inputs.bypass_tpm == 'true' && '✅' || '❌') || '✅ (Quick preset - for better compatibility)' }}
+          - Xóa Microsoft Edge: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && 'Tùy chỉnh' || '❌ (Quick preset - giữ lại)' }}
+          - Xóa AI Components: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && 'Tùy chỉnh' || '❌ (Quick preset - giữ lại)' }}
+          - Xóa Windows Defender: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && 'Tùy chỉnh' || '❌ (Quick preset - giữ lại)' }}
+          - Bypass TPM: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && 'Tùy chỉnh' || '✅ (Quick preset - for better compatibility)' }}
           - Bật user folders: ✅
-          - Nén ISO: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && (github.event.inputs.compress_iso == 'true' && '✅' || '❌') || '✅ (Quick preset - for smaller file size)' }}
+          - Nén ISO: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && 'Tùy chỉnh' || '✅ (Quick preset - for smaller file size)' }}
           
           **⚠️ Lưu ý:** File này được tạo tự động bởi GitHub Actions. Vui lòng kiểm tra kỹ trước khi sử dụng.
           
