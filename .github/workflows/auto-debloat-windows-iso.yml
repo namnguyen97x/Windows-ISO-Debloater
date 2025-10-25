@@ -15,7 +15,7 @@ on:
           - 'Custom (Full Options)'
         default: 'Windows 11 Pro (Quick)'
       iso_url:
-        description: 'URL của Windows ISO (để trống nếu dùng preset)'
+        description: 'URL của Windows ISO (để trống nếu dùng preset). Lấy từ: https://www.microsoft.com/en-us/software-download/windows11'
         required: false
         type: string
       iso_filename:
@@ -79,23 +79,23 @@ jobs:
         # Xác định URL ISO dựa trên preset
         switch ($preset) {
           "Windows 11 Pro (Quick)" { 
-            $isoUrl = "https://software-download.microsoft.com/download/sg/444969d5-f34g-4e03-ac9d-1f9786c69161/Win11_24H2_English_x64v1.iso"
+            $isoUrl = "https://software-download.microsoft.com/download/pr/444969d5-f34g-4e03-ac9d-1f9786c69161/Win11_24H2_English_x64v1.iso"
             $winEdition = "Windows 11 Pro"
           }
           "Windows 11 Home (Quick)" { 
-            $isoUrl = "https://software-download.microsoft.com/download/sg/444969d5-f34g-4e03-ac9d-1f9786c69161/Win11_24H2_English_x64v1.iso"
+            $isoUrl = "https://software-download.microsoft.com/download/pr/444969d5-f34g-4e03-ac9d-1f9786c69161/Win11_24H2_English_x64v1.iso"
             $winEdition = "Windows 11 Home"
           }
           "Windows 10 Pro (Quick)" { 
-            $isoUrl = "https://software-download.microsoft.com/download/sg/444969d5-f34g-4e03-ac9d-1f9786c69161/Win10_22H2_English_x64v1.iso"
+            $isoUrl = "https://software-download.microsoft.com/download/pr/444969d5-f34g-4e03-ac9d-1f9786c69161/Win10_22H2_English_x64v1.iso"
             $winEdition = "Windows 10 Pro"
           }
           "Windows 10 Home (Quick)" { 
-            $isoUrl = "https://software-download.microsoft.com/download/sg/444969d5-f34g-4e03-ac9d-1f9786c69161/Win10_22H2_English_x64v1.iso"
+            $isoUrl = "https://software-download.microsoft.com/download/pr/444969d5-f34g-4e03-ac9d-1f9786c69161/Win10_22H2_English_x64v1.iso"
             $winEdition = "Windows 10 Home"
           }
           default { 
-            $isoUrl = if ($customUrl) { $customUrl } else { "https://software-download.microsoft.com/download/sg/444969d5-f34g-4e03-ac9d-1f9786c69161/Win11_24H2_English_x64v1.iso" }
+            $isoUrl = if ($customUrl) { $customUrl } else { "https://software-download.microsoft.com/download/pr/444969d5-f34g-4e03-ac9d-1f9786c69161/Win11_24H2_English_x64v1.iso" }
             $winEdition = "${{ github.event.inputs.win_edition }}"
           }
         }
@@ -115,28 +115,73 @@ jobs:
         
         Write-Host "Downloading Windows ISO from: $isoUrl"
         
-        # Download với progress
+        # Fallback URLs nếu URL chính fail
+        $fallbackUrls = @(
+          "https://software-download.microsoft.com/download/pr/444969d5-f34g-4e03-ac9d-1f9786c69161/Win11_24H2_English_x64v1.iso",
+          "https://software-download.microsoft.com/download/sg/444969d5-f34g-4e03-ac9d-1f9786c69161/Win11_24H2_English_x64v1.iso",
+          "https://go.microsoft.com/fwlink/p/?LinkId=2124703"
+        )
+        
+        $downloadSuccess = $false
         $ProgressPreference = 'SilentlyContinue'
+        
+        # Thử download từ URL chính trước
         try {
-          Invoke-WebRequest -Uri $isoUrl -OutFile $isoPath -UseBasicParsing
-          Write-Host "Download completed successfully"
+          Write-Host "Attempting download from primary URL..."
+          Invoke-WebRequest -Uri $isoUrl -OutFile $isoPath -UseBasicParsing -TimeoutSec 300
           
           # Kiểm tra file size
           $fileSize = (Get-Item $isoPath).Length
           $fileSizeGB = [math]::Round($fileSize / 1GB, 2)
           Write-Host "Downloaded file size: $fileSizeGB GB"
           
-          if ($fileSize -lt 1MB) {
-            throw "Downloaded file is too small, download may have failed"
+          if ($fileSize -gt 1GB) {
+            $downloadSuccess = $true
+            Write-Host "Download completed successfully from primary URL"
+          } else {
+            Write-Warning "Downloaded file is too small, trying fallback URLs..."
+            Remove-Item $isoPath -Force -ErrorAction SilentlyContinue
           }
         }
         catch {
-          Write-Error "Failed to download ISO: $_"
+          Write-Warning "Primary URL failed: $($_.Exception.Message)"
+          Remove-Item $isoPath -Force -ErrorAction SilentlyContinue
+        }
+        
+        # Thử fallback URLs nếu primary URL fail
+        if (-not $downloadSuccess) {
+          foreach ($fallbackUrl in $fallbackUrls) {
+            try {
+              Write-Host "Trying fallback URL: $fallbackUrl"
+              Invoke-WebRequest -Uri $fallbackUrl -OutFile $isoPath -UseBasicParsing -TimeoutSec 300
+              
+              $fileSize = (Get-Item $isoPath).Length
+              $fileSizeGB = [math]::Round($fileSize / 1GB, 2)
+              Write-Host "Downloaded file size: $fileSizeGB GB"
+              
+              if ($fileSize -gt 1GB) {
+                $downloadSuccess = $true
+                Write-Host "Download completed successfully from fallback URL"
+                break
+              } else {
+                Write-Warning "Fallback file too small, trying next..."
+                Remove-Item $isoPath -Force -ErrorAction SilentlyContinue
+              }
+            }
+            catch {
+              Write-Warning "Fallback URL failed: $($_.Exception.Message)"
+              Remove-Item $isoPath -Force -ErrorAction SilentlyContinue
+            }
+          }
+        }
+        
+        if (-not $downloadSuccess) {
+          Write-Error "All download attempts failed. Please provide a custom ISO URL in the workflow inputs."
+          Write-Host "You can get Windows ISO from: https://www.microsoft.com/en-us/software-download/windows11"
           exit 1
         }
-        finally {
-          $ProgressPreference = 'Continue'
-        }
+        
+        $ProgressPreference = 'Continue'
         
     - name: Verify ISO file
       run: |
