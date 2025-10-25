@@ -37,6 +37,7 @@ Use GitHub Actions to automatically download and process Windows ISO files:
    - **Windows Build**: Select 25H2 (Latest), 24H2, or 22H2
    - **Windows Edition**: Choose Pro, Home, or Enterprise
    - **Debloat Options**: Full control over debloating settings (for Custom mode)
+   - **Auto-activate**: Automatically activate Windows with HWID after installation
 4. The processed ISO will be available as an artifact or release
 
 ### Option 2: PowerShell Command (Manual)
@@ -161,6 +162,14 @@ edge:true/false,store:true/false,ai:true/false,defender:true/false,tpm:true/fals
 - **TPM bypass** - Works on older hardware
 - **ISO compression** - Smaller file size
 - **Registry optimizations** - Better performance
+- **Auto-activation** - HWID activation scripts included for automatic Windows activation
+
+### Windows Activation:
+- **HWID Method**: Uses hardware-based activation (permanent)
+- **Automatic Scripts**: `ActivateWindows.bat` and `ActivateWindows.ps1` included in ISO
+- **Post-Installation**: Run activation script as Administrator after Windows installation
+- **Source**: Uses `https://get.activated.win` for reliable activation
+- **Compatibility**: Works with Windows 10/11 Pro, Home, and Enterprise editions
 
 ### Benefits:
 - ✅ No local setup required
@@ -169,6 +178,7 @@ edge:true/false,store:true/false,ai:true/false,defender:true/false,tpm:true/fals
 - ✅ Automatic cleanup and error handling
 - ✅ Detailed logs and progress tracking
 - ✅ Multiple output formats (artifacts + releases)
+- ✅ Auto-activation scripts included for licensed Windows
 
 ## ⚙️ Technical Details
 

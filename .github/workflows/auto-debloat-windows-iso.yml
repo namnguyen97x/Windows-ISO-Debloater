@@ -44,6 +44,11 @@ on:
         required: false
         type: string
         default: 'edge:false,store:false,ai:false,defender:false,tpm:true,compress:true'
+      auto_activate:
+        description: 'Auto-activate Windows with HWID after installation'
+        required: false
+        type: boolean
+        default: true
   schedule:
     # Chạy tự động mỗi thứ 2 lúc 2:00 AM UTC (9:00 AM VN)
     - cron: '0 2 * * 1'
@@ -393,6 +398,103 @@ jobs:
           exit 1
         }
         
+    - name: Create Windows Activation Script
+      if: github.event.inputs.auto_activate == 'true'
+      run: |
+        $autoActivate = "${{ github.event.inputs.auto_activate }}"
+        
+        if ($autoActivate -eq "true") {
+          Write-Host "=== CREATING WINDOWS ACTIVATION SCRIPT ==="
+          Write-Host "Auto-activation: $autoActivate"
+          Write-Host "=========================================="
+          
+          try {
+            # Create activation script that will run after Windows installation
+            $activationScript = @"
+@echo off
+echo ========================================
+echo    Windows Auto-Activation Script
+echo ========================================
+echo.
+echo This script will automatically activate Windows using HWID method.
+echo Please run this script as Administrator after Windows installation.
+echo.
+echo Press any key to continue or close this window to skip activation...
+pause >nul
+
+echo.
+echo Downloading and running HWID activation...
+echo.
+
+REM Download and run HWID activation
+powershell -Command "& {Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://get.activated.win'))}"
+
+echo.
+echo Activation process completed.
+echo Please restart your computer if activation was successful.
+echo.
+pause
+"@
+            
+            # Save activation script
+            $scriptPath = "$env:ISO_DOWNLOAD_PATH\ActivateWindows.bat"
+            $activationScript | Out-File -FilePath $scriptPath -Encoding ASCII
+            
+            Write-Host "Windows activation script created: $scriptPath"
+            Write-Host "Script will be included in the ISO for post-installation activation"
+            
+            # Also create a PowerShell version for better compatibility
+            $psActivationScript = @"
+# Windows Auto-Activation Script (PowerShell)
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host "   Windows Auto-Activation Script" -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "This script will automatically activate Windows using HWID method." -ForegroundColor Yellow
+Write-Host "Please run this script as Administrator after Windows installation." -ForegroundColor Yellow
+Write-Host ""
+Write-Host "Press any key to continue or close this window to skip activation..." -ForegroundColor Green
+$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+
+Write-Host ""
+Write-Host "Downloading and running HWID activation..." -ForegroundColor Green
+Write-Host ""
+
+try {
+    # Set execution policy and download activation script
+    Set-ExecutionPolicy Bypass -Scope Process -Force
+    [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+    Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://get.activated.win'))
+    
+    Write-Host ""
+    Write-Host "Activation process completed successfully!" -ForegroundColor Green
+    Write-Host "Please restart your computer if activation was successful." -ForegroundColor Yellow
+} catch {
+    Write-Host ""
+    Write-Host "Activation failed: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "Please try running the script again or activate manually." -ForegroundColor Yellow
+}
+
+Write-Host ""
+Write-Host "Press any key to exit..."
+$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+"@
+            
+            # Save PowerShell activation script
+            $psScriptPath = "$env:ISO_DOWNLOAD_PATH\ActivateWindows.ps1"
+            $psActivationScript | Out-File -FilePath $psScriptPath -Encoding UTF8
+            
+            Write-Host "PowerShell activation script created: $psScriptPath"
+            Write-Host "Both batch and PowerShell activation scripts are ready"
+            
+          }
+          catch {
+            Write-Warning "Failed to create activation scripts: $_"
+            Write-Host "Continuing without activation scripts..."
+          }
+        } else {
+          Write-Host "Windows auto-activation skipped (auto_activate = false)"
+        }
         
     - name: Check output ISO
       run: |
@@ -449,6 +551,10 @@ jobs:
           **📝 Debloat Options Used:**
           - Quick Preset: `edge:false,store:false,ai:false,defender:false,tpm:true,compress:true`
           - Custom Mode: `${{ github.event.inputs.debloat_options }}`
+          
+          **🔑 Windows Activation:**
+          - Auto-activation: ${{ github.event.inputs.auto_activate == 'true' && '✅ Enabled (HWID method)' || '❌ Disabled' }}
+          - Activation scripts: ${{ github.event.inputs.auto_activate == 'true' && 'ActivateWindows.bat & ActivateWindows.ps1 included' || 'Not included' }}
           
           **📝 Debloat Options Format (for Custom mode):**
           ```
