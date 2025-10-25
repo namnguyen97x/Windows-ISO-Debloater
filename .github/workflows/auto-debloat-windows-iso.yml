@@ -141,19 +141,44 @@ jobs:
         $downloadSuccess = $false
         $ProgressPreference = 'SilentlyContinue'
         
-        # Thử download từ URL chính trước
+        # Thử download từ URL chính trước với progress tracking
         try {
           Write-Host "Attempting download from primary URL..."
-          Invoke-WebRequest -Uri $isoUrl -OutFile $isoPath -UseBasicParsing -TimeoutSec 300
+          Write-Host "URL: $isoUrl"
+          
+          # Sử dụng WebClient để có progress tracking
+          $webClient = New-Object System.Net.WebClient
+          $webClient.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+          
+          # Tạo event handler cho progress
+          Register-ObjectEvent -InputObject $webClient -EventName DownloadProgressChanged -Action {
+            $percent = $Event.SourceEventArgs.ProgressPercentage
+            $bytesReceived = $Event.SourceEventArgs.BytesReceived
+            $totalBytes = $Event.SourceEventArgs.TotalBytesToReceive
+            
+            if ($totalBytes -gt 0) {
+              $receivedMB = [math]::Round($bytesReceived / 1MB, 2)
+              $totalMB = [math]::Round($totalBytes / 1MB, 2)
+              Write-Host "Download Progress: $percent% ($receivedMB MB / $totalMB MB)"
+            }
+          } | Out-Null
+          
+          # Bắt đầu download
+          Write-Host "Starting download with progress tracking..."
+          $webClient.DownloadFile($isoUrl, $isoPath)
+          
+          # Cleanup
+          $webClient.Dispose()
+          Unregister-Event -SourceIdentifier $webClient.DownloadProgressChanged -ErrorAction SilentlyContinue
           
           # Kiểm tra file size
           $fileSize = (Get-Item $isoPath).Length
           $fileSizeGB = [math]::Round($fileSize / 1GB, 2)
-          Write-Host "Downloaded file size: $fileSizeGB GB"
+          Write-Host "Download completed! File size: $fileSizeGB GB"
           
           if ($fileSize -gt 1GB) {
             $downloadSuccess = $true
-            Write-Host "Download completed successfully from primary URL"
+            Write-Host "✅ Download successful from primary URL"
           } else {
             Write-Warning "Downloaded file is too small, trying fallback URLs..."
             Remove-Item $isoPath -Force -ErrorAction SilentlyContinue
@@ -169,15 +194,38 @@ jobs:
           foreach ($fallbackUrl in $fallbackUrls) {
             try {
               Write-Host "Trying fallback URL: $fallbackUrl"
-              Invoke-WebRequest -Uri $fallbackUrl -OutFile $isoPath -UseBasicParsing -TimeoutSec 300
+              
+              # Sử dụng WebClient cho fallback URLs cũng
+              $webClient = New-Object System.Net.WebClient
+              $webClient.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+              
+              # Event handler cho progress
+              Register-ObjectEvent -InputObject $webClient -EventName DownloadProgressChanged -Action {
+                $percent = $Event.SourceEventArgs.ProgressPercentage
+                $bytesReceived = $Event.SourceEventArgs.BytesReceived
+                $totalBytes = $Event.SourceEventArgs.TotalBytesToReceive
+                
+                if ($totalBytes -gt 0) {
+                  $receivedMB = [math]::Round($bytesReceived / 1MB, 2)
+                  $totalMB = [math]::Round($totalBytes / 1MB, 2)
+                  Write-Host "Fallback Download Progress: $percent% ($receivedMB MB / $totalMB MB)"
+                }
+              } | Out-Null
+              
+              Write-Host "Starting fallback download with progress tracking..."
+              $webClient.DownloadFile($fallbackUrl, $isoPath)
+              
+              # Cleanup
+              $webClient.Dispose()
+              Unregister-Event -SourceIdentifier $webClient.DownloadProgressChanged -ErrorAction SilentlyContinue
               
               $fileSize = (Get-Item $isoPath).Length
               $fileSizeGB = [math]::Round($fileSize / 1GB, 2)
-              Write-Host "Downloaded file size: $fileSizeGB GB"
+              Write-Host "Fallback download completed! File size: $fileSizeGB GB"
               
               if ($fileSize -gt 1GB) {
                 $downloadSuccess = $true
-                Write-Host "Download completed successfully from fallback URL"
+                Write-Host "✅ Download successful from fallback URL"
                 break
               } else {
                 Write-Warning "Fallback file too small, trying next..."
