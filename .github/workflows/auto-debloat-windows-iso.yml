@@ -241,9 +241,9 @@ jobs:
         
         # Xử lý preset hoặc custom options
         if ($preset -like "*Quick*") {
-          # Preset tối ưu cho tất cả - bao gồm TPM bypass và nén ISO để giảm kích thước
+          # Preset tối ưu cho tất cả - giữ Microsoft Store, bao gồm TPM bypass và nén ISO
           $params += @(
-            "-AppxRemove", "yes"
+            "-AppxRemove", "no"
             "-CapabilitiesRemove", "yes"
             "-OnedriveRemove", "yes"
             "-EDGERemove", "yes"
@@ -253,11 +253,11 @@ jobs:
             "-ESDConvert", "yes"
             "-useOscdimg", "yes"
           )
-          Write-Host "Using Quick preset configuration (with TPM bypass and ISO compression for smaller file size)"
+          Write-Host "Using Quick preset configuration (keeping Microsoft Store, with TPM bypass and ISO compression)"
         } else {
           # Custom options - sử dụng các inputs còn lại
           $params += @(
-            "-AppxRemove", "yes"
+            "-AppxRemove", "no"
             "-CapabilitiesRemove", "yes"
             "-OnedriveRemove", "yes"
             "-EDGERemove", if ("${{ github.event.inputs.remove_edge }}" -eq "true") { "yes" } else { "no" }
@@ -329,7 +329,7 @@ jobs:
           - **ISO gốc:** ${{ github.event.inputs.iso_url || 'Preset URL' }}
           
           **⚙️ Cấu hình xử lý:**
-          - Xóa Microsoft Store apps: ✅
+          - Xóa Microsoft Store apps: ❌ (giữ lại Microsoft Store)
           - Xóa Windows features: ✅
           - Xóa OneDrive: ✅
           - Xóa Microsoft Edge: ${{ github.event.inputs.preset == 'Custom (Full Options)' && (github.event.inputs.remove_edge == 'true' && '✅' || '❌') || '✅ (Quick preset)' }}
