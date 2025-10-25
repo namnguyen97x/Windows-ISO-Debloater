@@ -351,10 +351,32 @@ jobs:
         
         # Chạy script với parameters riêng biệt
         try {
-          & ".\isoDebloaterScript.ps1" -noPrompt -isoPath "`"$isoPath`"" -winEdition "`"$winEdition`"" -outputISO "`"$outputISO`"" -AppxRemove $storeRemove -CapabilitiesRemove "yes" -OnedriveRemove "yes" -EDGERemove $edgeRemove -AIRemove $aiRemove -TPMBypass $tpmBypass -UserFoldersEnable "yes" -ESDConvert $esdConvert -useOscdimg "yes"
+          # Disable cursor operations for GitHub Actions environment
+          $env:TERM = "dumb"
+          $env:COLUMNS = "80"
+          $env:LINES = "24"
           
-          if ($LASTEXITCODE -ne 0) {
-            throw "Script exited with code: $LASTEXITCODE"
+          # Run script with output redirection to avoid cursor issues
+          $process = Start-Process -FilePath "powershell.exe" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `".\isoDebloaterScript.ps1`" -noPrompt -isoPath `"$isoPath`" -winEdition `"$winEdition`" -outputISO `"$outputISO`" -AppxRemove $storeRemove -CapabilitiesRemove yes -OnedriveRemove yes -EDGERemove $edgeRemove -AIRemove $aiRemove -TPMBypass $tpmBypass -UserFoldersEnable yes -ESDConvert $esdConvert -useOscdimg yes" -Wait -PassThru -RedirectStandardOutput "script_output.txt" -RedirectStandardError "script_error.txt"
+          
+          # Display output
+          if (Test-Path "script_output.txt") {
+            Write-Host "=== SCRIPT OUTPUT ==="
+            Get-Content "script_output.txt" | Write-Host
+            Write-Host "===================="
+          }
+          
+          if (Test-Path "script_error.txt") {
+            $errorContent = Get-Content "script_error.txt"
+            if ($errorContent) {
+              Write-Host "=== SCRIPT ERRORS ==="
+              $errorContent | Write-Host
+              Write-Host "===================="
+            }
+          }
+          
+          if ($process.ExitCode -ne 0) {
+            throw "Script exited with code: $($process.ExitCode)"
           }
           
           Write-Host "Windows ISO Debloater completed successfully"
