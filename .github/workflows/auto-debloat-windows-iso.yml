@@ -1,0 +1,354 @@
+name: Windows ISO Debloater
+
+on:
+  workflow_dispatch:
+    inputs:
+      preset:
+        description: 'Chọn preset hoặc tùy chỉnh'
+        required: true
+        type: choice
+        options:
+          - 'Windows 11 Pro (Quick)'
+          - 'Windows 11 Home (Quick)'
+          - 'Windows 10 Pro (Quick)'
+          - 'Windows 10 Home (Quick)'
+          - 'Custom (Full Options)'
+        default: 'Windows 11 Pro (Quick)'
+      iso_url:
+        description: 'URL của Windows ISO (để trống nếu dùng preset)'
+        required: false
+        type: string
+      iso_filename:
+        description: 'Tên file ISO (không có extension)'
+        required: true
+        type: string
+        default: 'Windows_Debloated'
+      win_edition:
+        description: 'Phiên bản Windows cần xử lý'
+        required: true
+        type: choice
+        options:
+          - 'Windows 11 Pro'
+          - 'Windows 11 Home'
+          - 'Windows 11 Enterprise'
+          - 'Windows 10 Pro'
+          - 'Windows 10 Home'
+          - 'Windows 10 Enterprise'
+        default: 'Windows 11 Pro'
+      remove_appx:
+        description: 'Xóa Microsoft Store apps'
+        required: true
+        type: boolean
+        default: true
+      remove_capabilities:
+        description: 'Xóa Windows features không cần thiết'
+        required: true
+        type: boolean
+        default: true
+      remove_onedrive:
+        description: 'Xóa OneDrive'
+        required: true
+        type: boolean
+        default: true
+      remove_edge:
+        description: 'Xóa Microsoft Edge'
+        required: true
+        type: boolean
+        default: true
+      remove_ai:
+        description: 'Xóa AI Components'
+        required: true
+        type: boolean
+        default: true
+      bypass_tpm:
+        description: 'Bypass TPM check (chỉ dùng cho hardware cũ)'
+        required: true
+        type: boolean
+        default: false
+      enable_user_folders:
+        description: 'Bật user folders trong Explorer'
+        required: true
+        type: boolean
+        default: true
+      compress_iso:
+        description: 'Nén ISO (chậm nhưng giảm kích thước)'
+        required: true
+        type: boolean
+        default: false
+      use_oscdimg:
+        description: 'Sử dụng oscdimg.exe (khuyến nghị)'
+        required: true
+        type: boolean
+        default: true
+  schedule:
+    # Chạy tự động mỗi thứ 2 lúc 2:00 AM UTC (9:00 AM VN)
+    - cron: '0 2 * * 1'
+
+env:
+  ISO_DOWNLOAD_PATH: ${{ github.workspace }}/downloads
+  OUTPUT_PATH: ${{ github.workspace }}/output
+
+jobs:
+  debloat-windows-iso:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Create directories
+      run: |
+        New-Item -ItemType Directory -Path "$env:ISO_DOWNLOAD_PATH" -Force
+        New-Item -ItemType Directory -Path "$env:OUTPUT_PATH" -Force
+        
+    - name: Setup ISO URL and Configuration
+      run: |
+        $preset = "${{ github.event.inputs.preset }}"
+        $customUrl = "${{ github.event.inputs.iso_url }}"
+        
+        # Xác định URL ISO dựa trên preset
+        switch ($preset) {
+          "Windows 11 Pro (Quick)" { 
+            $isoUrl = "https://software-download.microsoft.com/download/sg/444969d5-f34g-4e03-ac9d-1f9786c69161/Win11_24H2_English_x64v1.iso"
+            $winEdition = "Windows 11 Pro"
+          }
+          "Windows 11 Home (Quick)" { 
+            $isoUrl = "https://software-download.microsoft.com/download/sg/444969d5-f34g-4e03-ac9d-1f9786c69161/Win11_24H2_English_x64v1.iso"
+            $winEdition = "Windows 11 Home"
+          }
+          "Windows 10 Pro (Quick)" { 
+            $isoUrl = "https://software-download.microsoft.com/download/sg/444969d5-f34g-4e03-ac9d-1f9786c69161/Win10_22H2_English_x64v1.iso"
+            $winEdition = "Windows 10 Pro"
+          }
+          "Windows 10 Home (Quick)" { 
+            $isoUrl = "https://software-download.microsoft.com/download/sg/444969d5-f34g-4e03-ac9d-1f9786c69161/Win10_22H2_English_x64v1.iso"
+            $winEdition = "Windows 10 Home"
+          }
+          default { 
+            $isoUrl = if ($customUrl) { $customUrl } else { "https://software-download.microsoft.com/download/sg/444969d5-f34g-4e03-ac9d-1f9786c69161/Win11_24H2_English_x64v1.iso" }
+            $winEdition = "${{ github.event.inputs.win_edition }}"
+          }
+        }
+        
+        # Lưu vào environment variables
+        echo "ISO_URL=$isoUrl" >> $env:GITHUB_ENV
+        echo "WIN_EDITION=$winEdition" >> $env:GITHUB_ENV
+        
+        Write-Host "Using preset: $preset"
+        Write-Host "ISO URL: $isoUrl"
+        Write-Host "Windows Edition: $winEdition"
+        
+    - name: Download Windows ISO
+      run: |
+        $isoUrl = $env:ISO_URL
+        $isoPath = "$env:ISO_DOWNLOAD_PATH\windows.iso"
+        
+        Write-Host "Downloading Windows ISO from: $isoUrl"
+        
+        # Download với progress
+        $ProgressPreference = 'SilentlyContinue'
+        try {
+          Invoke-WebRequest -Uri $isoUrl -OutFile $isoPath -UseBasicParsing
+          Write-Host "Download completed successfully"
+          
+          # Kiểm tra file size
+          $fileSize = (Get-Item $isoPath).Length
+          $fileSizeGB = [math]::Round($fileSize / 1GB, 2)
+          Write-Host "Downloaded file size: $fileSizeGB GB"
+          
+          if ($fileSize -lt 1MB) {
+            throw "Downloaded file is too small, download may have failed"
+          }
+        }
+        catch {
+          Write-Error "Failed to download ISO: $_"
+          exit 1
+        }
+        finally {
+          $ProgressPreference = 'Continue'
+        }
+        
+    - name: Verify ISO file
+      run: |
+        $isoPath = "$env:ISO_DOWNLOAD_PATH\windows.iso"
+        
+        if (-not (Test-Path $isoPath)) {
+          Write-Error "ISO file not found at: $isoPath"
+          exit 1
+        }
+        
+        # Kiểm tra file có phải ISO hợp lệ không
+        try {
+          $mountResult = Mount-DiskImage -ImagePath $isoPath -PassThru
+          $driveLetter = ($mountResult | Get-Volume).DriveLetter
+          $mountPath = "${driveLetter}:\"
+          
+          # Kiểm tra các file cần thiết
+          $requiredFiles = @("sources\install.wim", "sources\install.esd", "bootmgr", "bootmgr.efi")
+          $missingFiles = @()
+          
+          foreach ($file in $requiredFiles) {
+            if (-not (Test-Path (Join-Path $mountPath $file))) {
+              $missingFiles += $file
+            }
+          }
+          
+          # Unmount
+          Dismount-DiskImage -ImagePath $isoPath
+          
+          if ($missingFiles.Count -gt 0) {
+            Write-Warning "Missing required files: $($missingFiles -join ', ')"
+            Write-Host "This might be a valid ISO but missing some expected files"
+          } else {
+            Write-Host "ISO verification successful - all required files found"
+          }
+        }
+        catch {
+          Write-Error "Failed to verify ISO: $_"
+          exit 1
+        }
+        
+    - name: Run Windows ISO Debloater
+      run: |
+        $isoPath = "$env:ISO_DOWNLOAD_PATH\windows.iso"
+        $outputISO = "${{ github.event.inputs.iso_filename }}"
+        $winEdition = $env:WIN_EDITION
+        $preset = "${{ github.event.inputs.preset }}"
+        
+        # Chuẩn bị parameters cơ bản
+        $params = @(
+          "-noPrompt"
+          "-isoPath", "`"$isoPath`""
+          "-winEdition", "`"$winEdition`""
+          "-outputISO", "`"$outputISO`""
+        )
+        
+        # Xử lý preset hoặc custom options
+        if ($preset -like "*Quick*") {
+          # Preset tối ưu cho tất cả
+          $params += @(
+            "-AppxRemove", "yes"
+            "-CapabilitiesRemove", "yes"
+            "-OnedriveRemove", "yes"
+            "-EDGERemove", "yes"
+            "-AIRemove", "yes"
+            "-TPMBypass", "no"
+            "-UserFoldersEnable", "yes"
+            "-ESDConvert", "no"
+            "-useOscdimg", "yes"
+          )
+          Write-Host "Using Quick preset configuration"
+        } else {
+          # Custom options
+          $params += @(
+            "-AppxRemove", if ("${{ github.event.inputs.remove_appx }}" -eq "true") { "yes" } else { "no" }
+            "-CapabilitiesRemove", if ("${{ github.event.inputs.remove_capabilities }}" -eq "true") { "yes" } else { "no" }
+            "-OnedriveRemove", if ("${{ github.event.inputs.remove_onedrive }}" -eq "true") { "yes" } else { "no" }
+            "-EDGERemove", if ("${{ github.event.inputs.remove_edge }}" -eq "true") { "yes" } else { "no" }
+            "-AIRemove", if ("${{ github.event.inputs.remove_ai }}" -eq "true") { "yes" } else { "no" }
+            "-TPMBypass", if ("${{ github.event.inputs.bypass_tpm }}" -eq "true") { "yes" } else { "no" }
+            "-UserFoldersEnable", if ("${{ github.event.inputs.enable_user_folders }}" -eq "true") { "yes" } else { "no" }
+            "-ESDConvert", if ("${{ github.event.inputs.compress_iso }}" -eq "true") { "yes" } else { "no" }
+            "-useOscdimg", if ("${{ github.event.inputs.use_oscdimg }}" -eq "true") { "yes" } else { "no" }
+          )
+          Write-Host "Using custom configuration"
+        }
+        
+        Write-Host "Running Windows ISO Debloater..."
+        Write-Host "Parameters: $($params -join ' ')"
+        
+        # Chạy script
+        try {
+          & ".\isoDebloaterScript.ps1" @params
+          
+          if ($LASTEXITCODE -ne 0) {
+            throw "Script exited with code: $LASTEXITCODE"
+          }
+          
+          Write-Host "Windows ISO Debloater completed successfully"
+        }
+        catch {
+          Write-Error "Failed to run Windows ISO Debloater: $_"
+          exit 1
+        }
+        
+    - name: Check output ISO
+      run: |
+        $outputISO = "${{ github.event.inputs.iso_filename }}.iso"
+        $outputPath = ".\$outputISO"
+        
+        if (-not (Test-Path $outputPath)) {
+          Write-Error "Output ISO not found at: $outputPath"
+          exit 1
+        }
+        
+        $fileSize = (Get-Item $outputPath).Length
+        $fileSizeGB = [math]::Round($fileSize / 1GB, 2)
+        Write-Host "Output ISO size: $fileSizeGB GB"
+        
+        # Di chuyển file đến output directory
+        Move-Item $outputPath "$env:OUTPUT_PATH\$outputISO"
+        Write-Host "Output ISO ready at: $env:OUTPUT_PATH\$outputISO"
+        
+    - name: Upload ISO as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: debloated-windows-iso
+        path: ${{ env.OUTPUT_PATH }}/*.iso
+        retention-days: 30
+        
+    - name: Create Release
+      if: github.event_name == 'workflow_dispatch'
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: debloated-${{ github.run_number }}
+        name: Windows ISO Debloated - ${{ github.run_number }}
+        body: |
+          ## 🚀 Windows ISO đã được xử lý tự động
+          
+          **📋 Thông tin:**
+          - **Preset:** ${{ github.event.inputs.preset }}
+          - **Phiên bản:** ${{ github.event.inputs.win_edition }}
+          - **Tên file:** ${{ github.event.inputs.iso_filename }}.iso
+          - **ISO gốc:** ${{ github.event.inputs.iso_url || 'Preset URL' }}
+          
+          **⚙️ Cấu hình xử lý:**
+          ${{ github.event.inputs.preset == 'Custom (Full Options)' && format('- Xóa Microsoft Store apps: {0}', github.event.inputs.remove_appx) || '- Xóa Microsoft Store apps: ✅ (Quick preset)' }}
+          ${{ github.event.inputs.preset == 'Custom (Full Options)' && format('- Xóa Windows features: {0}', github.event.inputs.remove_capabilities) || '- Xóa Windows features: ✅ (Quick preset)' }}
+          ${{ github.event.inputs.preset == 'Custom (Full Options)' && format('- Xóa OneDrive: {0}', github.event.inputs.remove_onedrive) || '- Xóa OneDrive: ✅ (Quick preset)' }}
+          ${{ github.event.inputs.preset == 'Custom (Full Options)' && format('- Xóa Microsoft Edge: {0}', github.event.inputs.remove_edge) || '- Xóa Microsoft Edge: ✅ (Quick preset)' }}
+          ${{ github.event.inputs.preset == 'Custom (Full Options)' && format('- Xóa AI Components: {0}', github.event.inputs.remove_ai) || '- Xóa AI Components: ✅ (Quick preset)' }}
+          ${{ github.event.inputs.preset == 'Custom (Full Options)' && format('- Bypass TPM: {0}', github.event.inputs.bypass_tpm) || '- Bypass TPM: ❌ (Quick preset)' }}
+          ${{ github.event.inputs.preset == 'Custom (Full Options)' && format('- Bật user folders: {0}', github.event.inputs.enable_user_folders) || '- Bật user folders: ✅ (Quick preset)' }}
+          ${{ github.event.inputs.preset == 'Custom (Full Options)' && format('- Nén ISO: {0}', github.event.inputs.compress_iso) || '- Nén ISO: ❌ (Quick preset)' }}
+          
+          **⚠️ Lưu ý:** File này được tạo tự động bởi GitHub Actions. Vui lòng kiểm tra kỹ trước khi sử dụng.
+          
+          **🔗 Hướng dẫn:** Xem [README.md](README.md) để biết cách sử dụng.
+        files: ${{ env.OUTPUT_PATH }}/*.iso
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Cleanup
+      if: always()
+      run: |
+        Write-Host "Cleaning up temporary files..."
+        
+        # Xóa download directory
+        if (Test-Path $env:ISO_DOWNLOAD_PATH) {
+          Remove-Item -Path $env:ISO_DOWNLOAD_PATH -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        
+        # Xóa output directory
+        if (Test-Path $env:OUTPUT_PATH) {
+          Remove-Item -Path $env:OUTPUT_PATH -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        
+        # Xóa các file tạm thời khác
+        if (Test-Path ".\*.iso") {
+          Remove-Item -Path ".\*.iso" -Force -ErrorAction SilentlyContinue
+        }
+        
+        Write-Host "Cleanup completed"

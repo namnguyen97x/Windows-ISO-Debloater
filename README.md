@@ -26,7 +26,18 @@ The script has been thoroughly tested with:
 
 ## 🚀 Quick Installation
 
-### Option 1: PowerShell Command (Recommended)
+### Option 1: GitHub Actions (Automated - Recommended)
+
+Use GitHub Actions to automatically download and process Windows ISO files:
+
+1. Go to the **Actions** tab in this repository
+2. Select **"Windows ISO Debloater"** workflow
+3. Click **"Run workflow"** and choose your preset:
+   - **Quick Presets**: Windows 11/10 Pro/Home (optimized settings)
+   - **Custom**: Full control over all options
+4. The processed ISO will be available as an artifact or release
+
+### Option 2: PowerShell Command (Manual)
 
 Launch PowerShell as **Administrator** and execute:
 
@@ -34,7 +45,7 @@ Launch PowerShell as **Administrator** and execute:
 irm "https://itsnileshhere.github.io/Windows-ISO-Debloater/download.ps1" | iex
 ```
 
-### Option 2: Manual Download and Execution
+### Option 3: Manual Download and Execution
 
 Download the latest `isoDebloater.ps1` from [here](https://github.com/itsNileshHere/Windows-ISO-Debloater/releases/latest)
 
@@ -102,6 +113,39 @@ The script includes optimization tweaks to:
 - Disable telemetry and data collection
 - Remove unnecessary UI elements
 - Remove AI components completely
+
+## 🤖 GitHub Actions Automation
+
+This repository includes a GitHub Actions workflow that automates the entire Windows ISO debloating process:
+
+### Features:
+- **Automatic Download**: Downloads Windows ISO from any URL
+- **Configurable Processing**: Customize all debloating options through web interface
+- **Scheduled Runs**: Automatically process ISOs on a schedule
+- **Artifact Storage**: Processed ISOs available as downloadable artifacts
+- **Release Generation**: Automatic release creation with detailed information
+
+### Quick Start:
+1. Navigate to **Actions** tab in this repository
+2. Select **"Windows ISO Debloater"** workflow
+3. Click **"Run workflow"** button
+4. Choose preset or configure custom options
+5. Wait for completion and download your processed ISO
+
+### Available Presets:
+- **Windows 11 Pro (Quick)** - Optimized settings for Windows 11 Pro
+- **Windows 11 Home (Quick)** - Optimized settings for Windows 11 Home  
+- **Windows 10 Pro (Quick)** - Optimized settings for Windows 10 Pro
+- **Windows 10 Home (Quick)** - Optimized settings for Windows 10 Home
+- **Custom (Full Options)** - Complete control over all settings
+
+### Benefits:
+- ✅ No local setup required
+- ✅ Runs on GitHub's powerful infrastructure
+- ✅ Quick presets for common use cases
+- ✅ Automatic cleanup and error handling
+- ✅ Detailed logs and progress tracking
+- ✅ Multiple output formats (artifacts + releases)
 
 ## ⚙️ Technical Details
 
