@@ -347,15 +347,22 @@ jobs:
           Write-Host "Using Quick preset configuration (minimal debloat, keeping Edge, Store, AI, Defender)"
         } else {
           # Custom options - sử dụng tất cả inputs
+          # Xác định giá trị cho từng option
+          $appxRemove = if ("${{ github.event.inputs.remove_msstore }}" -eq "true") { "yes" } else { "no" }
+          $edgeRemove = if ("${{ github.event.inputs.remove_edge }}" -eq "true") { "yes" } else { "no" }
+          $aiRemove = if ("${{ github.event.inputs.remove_ai }}" -eq "true") { "yes" } else { "no" }
+          $tpmBypass = if ("${{ github.event.inputs.bypass_tpm }}" -eq "true") { "yes" } else { "no" }
+          $esdConvert = if ("${{ github.event.inputs.compress_iso }}" -eq "true") { "yes" } else { "no" }
+          
           $params += @(
-            "-AppxRemove", if ("${{ github.event.inputs.remove_msstore }}" -eq "true") { "yes" } else { "no" }
+            "-AppxRemove", $appxRemove
             "-CapabilitiesRemove", "yes"
             "-OnedriveRemove", "yes"
-            "-EDGERemove", if ("${{ github.event.inputs.remove_edge }}" -eq "true") { "yes" } else { "no" }
-            "-AIRemove", if ("${{ github.event.inputs.remove_ai }}" -eq "true") { "yes" } else { "no" }
-            "-TPMBypass", if ("${{ github.event.inputs.bypass_tpm }}" -eq "true") { "yes" } else { "no" }
+            "-EDGERemove", $edgeRemove
+            "-AIRemove", $aiRemove
+            "-TPMBypass", $tpmBypass
             "-UserFoldersEnable", "yes"
-            "-ESDConvert", if ("${{ github.event.inputs.compress_iso }}" -eq "true") { "yes" } else { "no" }
+            "-ESDConvert", $esdConvert
             "-useOscdimg", "yes"
           )
           Write-Host "Using custom configuration with user-selected options"
