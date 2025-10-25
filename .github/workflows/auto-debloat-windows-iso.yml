@@ -36,20 +36,35 @@ on:
           - 'Windows 10 Enterprise'
         default: 'Windows 11 Pro'
       remove_edge:
-        description: 'Xóa Microsoft Edge (chỉ cho Custom mode)'
+        description: 'Xóa Microsoft Edge'
+        required: false
+        type: boolean
+        default: false
+      remove_msstore:
+        description: 'Xóa Microsoft Store'
+        required: false
+        type: boolean
+        default: false
+      remove_ai:
+        description: 'Xóa AI Components'
+        required: false
+        type: boolean
+        default: false
+      remove_defender:
+        description: 'Xóa Windows Defender'
+        required: false
+        type: boolean
+        default: false
+      bypass_tpm:
+        description: 'Bypass TPM check'
         required: false
         type: boolean
         default: true
-      bypass_tpm:
-        description: 'Bypass TPM check (chỉ cho Custom mode)'
-        required: false
-        type: boolean
-        default: false
       compress_iso:
-        description: 'Nén ISO (chỉ cho Custom mode)'
+        description: 'Nén ISO'
         required: false
         type: boolean
-        default: false
+        default: true
   schedule:
     # Chạy tự động mỗi thứ 2 lúc 2:00 AM UTC (9:00 AM VN)
     - cron: '0 2 * * 1'
@@ -241,33 +256,33 @@ jobs:
         
         # Xử lý preset hoặc custom options
         if ($preset -like "*Quick*") {
-          # Preset tối ưu cho tất cả - giữ Microsoft Store, bao gồm TPM bypass và nén ISO
+          # Preset tối ưu - chỉ xóa những thứ cơ bản, giữ lại các tùy chọn cho user
           $params += @(
             "-AppxRemove", "no"
             "-CapabilitiesRemove", "yes"
             "-OnedriveRemove", "yes"
-            "-EDGERemove", "yes"
-            "-AIRemove", "yes"
+            "-EDGERemove", "no"
+            "-AIRemove", "no"
             "-TPMBypass", "yes"
             "-UserFoldersEnable", "yes"
             "-ESDConvert", "yes"
             "-useOscdimg", "yes"
           )
-          Write-Host "Using Quick preset configuration (keeping Microsoft Store, with TPM bypass and ISO compression)"
+          Write-Host "Using Quick preset configuration (minimal debloat, keeping Edge, Store, AI, Defender)"
         } else {
-          # Custom options - sử dụng các inputs còn lại
+          # Custom options - sử dụng tất cả inputs
           $params += @(
-            "-AppxRemove", "no"
+            "-AppxRemove", if ("${{ github.event.inputs.remove_msstore }}" -eq "true") { "yes" } else { "no" }
             "-CapabilitiesRemove", "yes"
             "-OnedriveRemove", "yes"
             "-EDGERemove", if ("${{ github.event.inputs.remove_edge }}" -eq "true") { "yes" } else { "no" }
-            "-AIRemove", "yes"
+            "-AIRemove", if ("${{ github.event.inputs.remove_ai }}" -eq "true") { "yes" } else { "no" }
             "-TPMBypass", if ("${{ github.event.inputs.bypass_tpm }}" -eq "true") { "yes" } else { "no" }
             "-UserFoldersEnable", "yes"
             "-ESDConvert", if ("${{ github.event.inputs.compress_iso }}" -eq "true") { "yes" } else { "no" }
             "-useOscdimg", "yes"
           )
-          Write-Host "Using custom configuration"
+          Write-Host "Using custom configuration with user-selected options"
         }
         
         Write-Host "Running Windows ISO Debloater..."
@@ -329,11 +344,12 @@ jobs:
           - **ISO gốc:** ${{ github.event.inputs.iso_url || 'Preset URL' }}
           
           **⚙️ Cấu hình xử lý:**
-          - Xóa Microsoft Store apps: ❌ (giữ lại Microsoft Store)
+          - Xóa Microsoft Store: ${{ github.event.inputs.preset == 'Custom (Full Options)' && (github.event.inputs.remove_msstore == 'true' && '✅' || '❌') || '❌ (Quick preset - giữ lại)' }}
           - Xóa Windows features: ✅
           - Xóa OneDrive: ✅
-          - Xóa Microsoft Edge: ${{ github.event.inputs.preset == 'Custom (Full Options)' && (github.event.inputs.remove_edge == 'true' && '✅' || '❌') || '✅ (Quick preset)' }}
-          - Xóa AI Components: ✅
+          - Xóa Microsoft Edge: ${{ github.event.inputs.preset == 'Custom (Full Options)' && (github.event.inputs.remove_edge == 'true' && '✅' || '❌') || '❌ (Quick preset - giữ lại)' }}
+          - Xóa AI Components: ${{ github.event.inputs.preset == 'Custom (Full Options)' && (github.event.inputs.remove_ai == 'true' && '✅' || '❌') || '❌ (Quick preset - giữ lại)' }}
+          - Xóa Windows Defender: ${{ github.event.inputs.preset == 'Custom (Full Options)' && (github.event.inputs.remove_defender == 'true' && '✅' || '❌') || '❌ (Quick preset - giữ lại)' }}
           - Bypass TPM: ${{ github.event.inputs.preset == 'Custom (Full Options)' && (github.event.inputs.bypass_tpm == 'true' && '✅' || '❌') || '✅ (Quick preset - for better compatibility)' }}
           - Bật user folders: ✅
           - Nén ISO: ${{ github.event.inputs.preset == 'Custom (Full Options)' && (github.event.inputs.compress_iso == 'true' && '✅' || '❌') || '✅ (Quick preset - for smaller file size)' }}
