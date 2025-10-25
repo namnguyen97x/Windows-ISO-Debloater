@@ -130,12 +130,12 @@ jobs:
         
         Write-Host "Downloading Windows ISO from: $isoUrl"
         
-        # Fallback URLs nếu URL chính fail
+        # Fallback URLs nếu URL chính fail - sử dụng URLs hoạt động
         $fallbackUrls = @(
-          "https://dn721607.ca.archive.org/0/items/windows-11-24h2-iso_202501/Win11_24H2_English_x64.iso",
           "https://software-download.microsoft.com/download/pr/444969d5-f34g-4e03-ac9d-1f9786c69161/Win11_24H2_English_x64v1.iso",
           "https://software-download.microsoft.com/download/sg/444969d5-f34g-4e03-ac9d-1f9786c69161/Win11_24H2_English_x64v1.iso",
-          "https://go.microsoft.com/fwlink/p/?LinkId=2124703"
+          "https://go.microsoft.com/fwlink/p/?LinkId=2124703",
+          "https://www.microsoft.com/en-us/software-download/windows11"
         )
         
         $downloadSuccess = $false
@@ -150,8 +150,8 @@ jobs:
           $webClient = New-Object System.Net.WebClient
           $webClient.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
           
-          # Tạo event handler cho progress
-          Register-ObjectEvent -InputObject $webClient -EventName DownloadProgressChanged -Action {
+          # Tạo event handler cho progress với proper event registration
+          $eventJob = Register-ObjectEvent -InputObject $webClient -EventName DownloadProgressChanged -Action {
             $percent = $Event.SourceEventArgs.ProgressPercentage
             $bytesReceived = $Event.SourceEventArgs.BytesReceived
             $totalBytes = $Event.SourceEventArgs.TotalBytesToReceive
@@ -161,7 +161,7 @@ jobs:
               $totalMB = [math]::Round($totalBytes / 1MB, 2)
               Write-Host "Download Progress: $percent% ($receivedMB MB / $totalMB MB)"
             }
-          } | Out-Null
+          }
           
           # Bắt đầu download
           Write-Host "Starting download with progress tracking..."
@@ -169,7 +169,10 @@ jobs:
           
           # Cleanup
           $webClient.Dispose()
-          Unregister-Event -SourceIdentifier $webClient.DownloadProgressChanged -ErrorAction SilentlyContinue
+          if ($eventJob) {
+            Unregister-Event -SourceIdentifier $eventJob.Name -ErrorAction SilentlyContinue
+            Remove-Job -Job $eventJob -ErrorAction SilentlyContinue
+          }
           
           # Kiểm tra file size
           $fileSize = (Get-Item $isoPath).Length
@@ -199,8 +202,8 @@ jobs:
               $webClient = New-Object System.Net.WebClient
               $webClient.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
               
-              # Event handler cho progress
-              Register-ObjectEvent -InputObject $webClient -EventName DownloadProgressChanged -Action {
+              # Event handler cho progress với proper event registration
+              $eventJob = Register-ObjectEvent -InputObject $webClient -EventName DownloadProgressChanged -Action {
                 $percent = $Event.SourceEventArgs.ProgressPercentage
                 $bytesReceived = $Event.SourceEventArgs.BytesReceived
                 $totalBytes = $Event.SourceEventArgs.TotalBytesToReceive
@@ -210,14 +213,17 @@ jobs:
                   $totalMB = [math]::Round($totalBytes / 1MB, 2)
                   Write-Host "Fallback Download Progress: $percent% ($receivedMB MB / $totalMB MB)"
                 }
-              } | Out-Null
+              }
               
               Write-Host "Starting fallback download with progress tracking..."
               $webClient.DownloadFile($fallbackUrl, $isoPath)
               
               # Cleanup
               $webClient.Dispose()
-              Unregister-Event -SourceIdentifier $webClient.DownloadProgressChanged -ErrorAction SilentlyContinue
+              if ($eventJob) {
+                Unregister-Event -SourceIdentifier $eventJob.Name -ErrorAction SilentlyContinue
+                Remove-Job -Job $eventJob -ErrorAction SilentlyContinue
+              }
               
               $fileSize = (Get-Item $isoPath).Length
               $fileSizeGB = [math]::Round($fileSize / 1GB, 2)
@@ -239,9 +245,31 @@ jobs:
           }
         }
         
+        # Nếu tất cả WebClient attempts fail, thử Invoke-WebRequest đơn giản
+        if (-not $downloadSuccess) {
+          Write-Host "WebClient downloads failed, trying simple download method..."
+          try {
+            Write-Host "Attempting simple download from primary URL..."
+            Invoke-WebRequest -Uri $isoUrl -OutFile $isoPath -UseBasicParsing -TimeoutSec 600
+            
+            $fileSize = (Get-Item $isoPath).Length
+            $fileSizeGB = [math]::Round($fileSize / 1GB, 2)
+            Write-Host "Simple download completed! File size: $fileSizeGB GB"
+            
+            if ($fileSize -gt 1GB) {
+              $downloadSuccess = $true
+              Write-Host "✅ Download successful with simple method"
+            }
+          }
+          catch {
+            Write-Warning "Simple download also failed: $($_.Exception.Message)"
+          }
+        }
+        
         if (-not $downloadSuccess) {
           Write-Error "All download attempts failed. Please provide a custom ISO URL in the workflow inputs."
           Write-Host "You can get Windows ISO from: https://www.microsoft.com/en-us/software-download/windows11"
+          Write-Host "Or try using a different ISO URL in the 'iso_url' input field."
           exit 1
         }
         
