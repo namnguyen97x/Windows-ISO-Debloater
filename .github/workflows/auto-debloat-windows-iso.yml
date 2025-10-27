@@ -3,26 +3,12 @@ name: Windows ISO Debloater
 on:
   workflow_dispatch:
     inputs:
-      windows_version:
-        description: 'Select Windows Version'
+      iso_url:
+        description: 'Windows ISO URL (required). Get from: https://www.microsoft.com/en-us/software-download/windows11 or https://archive.org/download/windows-11-25h2-iso/'
         required: true
-        type: choice
-        options:
-          - 'Windows 11'
-          - 'Windows 10'
-          - 'Custom (Full Options)'
-        default: 'Windows 11'
-      windows_build:
-        description: 'Select Windows Build'
-        required: true
-        type: choice
-        options:
-          - '25H2 (Latest)'
-          - '24H2'
-          - '22H2'
-        default: '25H2 (Latest)'
+        type: string
       windows_edition:
-        description: 'Select Windows Edition'
+        description: 'Windows Edition'
         required: true
         type: choice
         options:
@@ -30,17 +16,13 @@ on:
           - 'Home'
           - 'Enterprise'
         default: 'Pro'
-      iso_url:
-        description: 'Custom ISO URL (leave empty to use preset). Get from: https://www.microsoft.com/en-us/software-download/windows11'
-        required: false
-        type: string
       iso_filename:
         description: 'Output ISO filename (without extension)'
         required: true
         type: string
         default: 'Windows_Debloated'
       debloat_options:
-        description: 'Debloat Options (for Custom mode): edge:false,store:false,ai:false,defender:false,tpm:true,compress:true'
+        description: 'Debloat Options: edge:false,store:false,ai:false,defender:false,tpm:true,compress:true'
         required: false
         type: string
         default: 'edge:false,store:false,ai:false,defender:false,tpm:true,compress:true'
@@ -65,46 +47,9 @@ jobs:
         New-Item -ItemType Directory -Path "$env:ISO_DOWNLOAD_PATH" -Force
         New-Item -ItemType Directory -Path "$env:OUTPUT_PATH" -Force
         
-    - name: Setup ISO URL and Configuration
-      run: |
-        $windowsVersion = "${{ github.event.inputs.windows_version }}"
-        $windowsBuild = "${{ github.event.inputs.windows_build }}"
-        $windowsEdition = "${{ github.event.inputs.windows_edition }}"
-        $customUrl = "${{ github.event.inputs.iso_url }}"
-        
-        # Determine ISO URL based on menu selection
-        if ($windowsVersion -eq "Custom (Full Options)") {
-          # Custom mode - use URL from input or default
-          $isoUrl = if ($customUrl) { $customUrl } else { "https://software.download.prss.microsoft.com/dbazure/Win11_25H2_English_x64.iso?t=d1a5a3e8-32ba-4bf6-9655-3b1785b1d44e&P1=1761468171&P2=601&P3=2&P4=TgPmVnaRJIXKrWv3dnoKNVmTq4NCRPTaIepZB4fjx3zqeC2YX36KRov6nULxRH9uLKMNbzJ4fkcOrVe4sYSQPf2BwqD3E%2bb8fH12uNiI9qKow8WjDQiasCkH%2b69Uc66%2f9Gro5OcswLtPby99e0pB5le6PSnu2t1yMkAAjNCaJ7s6%2bUicJ39K2aEHDUjbU7hYasU6BuQUqz0xeSEptTeZLpgo7UXa2OykZ3w3s2gzaugyEojm%2btNQl8EMmiUbN1Ol3Yn5GNuDrEzlYV6WIKhw6LnxOkdzlATRI0lEiTM%2fWX3v%2fnvKAf5fsOMxVJdlQlPh2iQbUzxfe6GURVzfKxQ3pQ%3d%3d" }
-          $winEdition = "${{ github.event.inputs.windows_edition }}"
-        } else {
-          # Quick preset mode - build from menu selections
-          $winEdition = "$windowsVersion $windowsEdition"
-          
-          if ($windowsVersion -eq "Windows 11") {
-            if ($windowsBuild -eq "25H2 (Latest)") {
-              $isoUrl = "https://software.download.prss.microsoft.com/dbazure/Win11_25H2_English_x64.iso?t=d1a5a3e8-32ba-4bf6-9655-3b1785b1d44e&P1=1761468171&P2=601&P3=2&P4=TgPmVnaRJIXKrWv3dnoKNVmTq4NCRPTaIepZB4fjx3zqeC2YX36KRov6nULxRH9uLKMNbzJ4fkcOrVe4sYSQPf2BwqD3E%2bb8fH12uNiI9qKow8WjDQiasCkH%2b69Uc66%2f9Gro5OcswLtPby99e0pB5le6PSnu2t1yMkAAjNCaJ7s6%2bUicJ39K2aEHDUjbU7hYasU6BuQUqz0xeSEptTeZLpgo7UXa2OykZ3w3s2gzaugyEojm%2btNQl8EMmiUbN1Ol3Yn5GNuDrEzlYV6WIKhw6LnxOkdzlATRI0lEiTM%2fWX3v%2fnvKAf5fsOMxVJdlQlPh2iQbUzxfe6GURVzfKxQ3pQ%3d%3d"
-            } else {
-              # 24H2 fallback
-              $isoUrl = "https://software-download.microsoft.com/download/pr/444969d5-f34g-4e03-ac9d-1f9786c69161/Win11_24H2_English_x64v1.iso"
-            }
-          } elseif ($windowsVersion -eq "Windows 10") {
-            # Windows 10 - always use 22H2 build
-            $isoUrl = "https://software-download.microsoft.com/download/pr/444969d5-f34g-4e03-ac9d-1f9786c69161/Win10_22H2_English_x64v1.iso"
-          }
-        }
-        
-        # Lưu vào environment variables
-        echo "ISO_URL=$isoUrl" >> $env:GITHUB_ENV
-        echo "WIN_EDITION=$winEdition" >> $env:GITHUB_ENV
-        
-        Write-Host "Using preset: $preset"
-        Write-Host "ISO URL: $isoUrl"
-        Write-Host "Windows Edition: $winEdition"
-        
     - name: Download Windows ISO
       run: |
-        $isoUrl = $env:ISO_URL
+        $isoUrl = "${{ github.event.inputs.iso_url }}"
         $isoPath = "$env:ISO_DOWNLOAD_PATH\windows.iso"
         
         Write-Host "Downloading Windows ISO from: $isoUrl"
@@ -348,19 +293,11 @@ jobs:
       run: |
         $isoPath = "$env:ISO_DOWNLOAD_PATH\windows.iso"
         $outputISO = "${{ github.event.inputs.iso_filename }}"
-        $winEdition = $env:WIN_EDITION
-        $windowsVersion = "${{ github.event.inputs.windows_version }}"
+        $winEdition = "${{ github.event.inputs.windows_edition }}"
         
-        # Parse debloat options for all modes (unified approach)
-        if ($windowsVersion -eq "Custom (Full Options)") {
-          # Custom mode - use user-provided debloat options
-          $debloatOptions = "${{ github.event.inputs.debloat_options }}"
-          Write-Host "Using Custom mode with user-provided debloat options: $debloatOptions"
-        } else {
-          # Quick preset mode - use default minimal debloat options
-          $debloatOptions = "edge:false,store:false,ai:false,defender:false,tpm:true,compress:true"
-          Write-Host "Using Quick preset mode with default debloat options: $debloatOptions"
-        }
+        # Use debloat options from input
+        $debloatOptions = "${{ github.event.inputs.debloat_options }}"
+        Write-Host "Using debloat options: $debloatOptions"
         
         # Parse options (format: edge:false,store:false,ai:false,defender:false,tpm:true,compress:true)
         $options = @{}
@@ -381,9 +318,7 @@ jobs:
         
         # Display configuration
         Write-Host "=== DEBLOAT CONFIGURATION ==="
-        Write-Host "Windows Version: $windowsVersion"
-        Write-Host "Windows Build: $windowsBuild"
-        Write-Host "Windows Edition: $windowsEdition"
+        Write-Host "Windows Edition: $winEdition"
         Write-Host "Remove Microsoft Edge: $edgeRemove"
         Write-Host "Remove Microsoft Store: $storeRemove"
         Write-Host "Remove AI Components: $aiRemove"
@@ -394,8 +329,6 @@ jobs:
         Write-Host "Remove OneDrive: yes"
         Write-Host "Enable User Folders: yes"
         Write-Host "============================="
-        
-        Write-Host "Using unified debloat configuration for $windowsVersion"
         
         Write-Host "Running Windows ISO Debloater..."
         
@@ -471,26 +404,23 @@ jobs:
           ## 🚀 Windows ISO Processed Automatically
           
           **📋 Information:**
-          - **Windows Version:** ${{ github.event.inputs.windows_version }}
-          - **Windows Build:** ${{ github.event.inputs.windows_build }}
           - **Windows Edition:** ${{ github.event.inputs.windows_edition }}
           - **Output File:** ${{ github.event.inputs.iso_filename }}.iso
-          - **Source ISO:** ${{ github.event.inputs.iso_url || 'Preset URL' }}
+          - **Source ISO:** ${{ github.event.inputs.iso_url }}
           
           **⚙️ Debloat Configuration:**
-          - Remove Microsoft Store: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && 'Custom' || '❌ (Quick preset - kept)' }}
+          - Remove Microsoft Store: ${{ github.event.inputs.debloat_options == 'edge:false,store:false,ai:false,defender:false,tpm:true,compress:true' && '❌ (kept)' || 'Custom' }}
           - Remove Windows Features: ✅
           - Remove OneDrive: ✅
-          - Remove Microsoft Edge: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && 'Custom' || '❌ (Quick preset - kept)' }}
-          - Remove AI Components: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && 'Custom' || '❌ (Quick preset - kept)' }}
-          - Remove Windows Defender: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && 'Custom' || '❌ (Quick preset - kept)' }}
-          - Bypass TPM: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && 'Custom' || '✅ (Quick preset - for compatibility)' }}
+          - Remove Microsoft Edge: ${{ github.event.inputs.debloat_options == 'edge:false,store:false,ai:false,defender:false,tpm:true,compress:true' && '❌ (kept)' || 'Custom' }}
+          - Remove AI Components: ${{ github.event.inputs.debloat_options == 'edge:false,store:false,ai:false,defender:false,tpm:true,compress:true' && '❌ (kept)' || 'Custom' }}
+          - Remove Windows Defender: ${{ github.event.inputs.debloat_options == 'edge:false,store:false,ai:false,defender:false,tpm:true,compress:true' && '❌ (kept)' || 'Custom' }}
+          - Bypass TPM: ${{ github.event.inputs.debloat_options == 'edge:false,store:false,ai:false,defender:false,tpm:true,compress:true' && '✅ (for compatibility)' || 'Custom' }}
           - Enable User Folders: ✅
-          - Compress ISO: ${{ github.event.inputs.windows_version == 'Custom (Full Options)' && 'Custom' || '✅ (Quick preset - smaller file)' }}
+          - Compress ISO: ${{ github.event.inputs.debloat_options == 'edge:false,store:false,ai:false,defender:false,tpm:true,compress:true' && '✅ (smaller file)' || 'Custom' }}
           
           **📝 Debloat Options Used:**
-          - Quick Preset: `edge:false,store:false,ai:false,defender:false,tpm:true,compress:true`
-          - Custom Mode: `${{ github.event.inputs.debloat_options }}`
+          `${{ github.event.inputs.debloat_options }}`
           
           **📝 Debloat Options Format (for Custom mode):**
           ```
