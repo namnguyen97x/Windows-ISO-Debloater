@@ -109,14 +109,14 @@ jobs:
         
         Write-Host "Downloading Windows ISO from: $isoUrl"
         
-  # Fallback URLs nếu URL chính fail - sử dụng URLs hoạt động từ Archive.org và mirrors
-  $fallbackUrls = @(
-    "https://archive.org/download/windows-11-25h2-iso/Win11_25H2_English_x64.iso",
-    "https://archive.org/download/windows-11-24h2-iso/Win11_24H2_English_x64.iso",
-    "https://archive.org/download/windows-11-22h2-iso/Win11_22H2_English_x64.iso",
-    "https://archive.org/download/windows-10-22h2-iso/Win10_22H2_English_x64.iso",
-    "https://archive.org/download/windows-10-21h2-iso/Win10_21H2_English_x64.iso"
-  )
+        # Fallback URLs nếu URL chính fail - sử dụng URLs hoạt động từ Archive.org và mirrors
+        $fallbackUrls = @(
+          "https://archive.org/download/windows-11-25h2-iso/Win11_25H2_English_x64.iso",
+          "https://archive.org/download/windows-11-24h2-iso/Win11_24H2_English_x64.iso",
+          "https://archive.org/download/windows-11-22h2-iso/Win11_22H2_English_x64.iso",
+          "https://archive.org/download/windows-10-22h2-iso/Win10_22H2_English_x64.iso",
+          "https://archive.org/download/windows-10-21h2-iso/Win10_21H2_English_x64.iso"
+        )
         
         $downloadSuccess = $false
         $ProgressPreference = 'SilentlyContinue'
@@ -126,14 +126,14 @@ jobs:
           Write-Host "Attempting download from primary URL..."
           Write-Host "URL: $isoUrl"
           
-    # Sử dụng WebClient để có progress tracking với headers tốt hơn
-    $webClient = New-Object System.Net.WebClient
-    $webClient.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-    $webClient.Headers.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
-    $webClient.Headers.Add("Accept-Language", "en-US,en;q=0.5")
-    $webClient.Headers.Add("Accept-Encoding", "gzip, deflate")
-    $webClient.Headers.Add("Connection", "keep-alive")
-    $webClient.Headers.Add("Upgrade-Insecure-Requests", "1")
+          # Sử dụng WebClient để có progress tracking với headers tốt hơn
+          $webClient = New-Object System.Net.WebClient
+          $webClient.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+          $webClient.Headers.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
+          $webClient.Headers.Add("Accept-Language", "en-US,en;q=0.5")
+          $webClient.Headers.Add("Accept-Encoding", "gzip, deflate")
+          $webClient.Headers.Add("Connection", "keep-alive")
+          $webClient.Headers.Add("Upgrade-Insecure-Requests", "1")
           
           # Tạo event handler cho progress với proper event registration
           $eventJob = Register-ObjectEvent -InputObject $webClient -EventName DownloadProgressChanged -Action {
@@ -183,14 +183,14 @@ jobs:
             try {
               Write-Host "Trying fallback URL: $fallbackUrl"
               
-        # Sử dụng WebClient cho fallback URLs với headers tốt hơn
-        $webClient = New-Object System.Net.WebClient
-        $webClient.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-        $webClient.Headers.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
-        $webClient.Headers.Add("Accept-Language", "en-US,en;q=0.5")
-        $webClient.Headers.Add("Accept-Encoding", "gzip, deflate")
-        $webClient.Headers.Add("Connection", "keep-alive")
-        $webClient.Headers.Add("Upgrade-Insecure-Requests", "1")
+              # Sử dụng WebClient cho fallback URLs với headers tốt hơn
+              $webClient = New-Object System.Net.WebClient
+              $webClient.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+              $webClient.Headers.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
+              $webClient.Headers.Add("Accept-Language", "en-US,en;q=0.5")
+              $webClient.Headers.Add("Accept-Encoding", "gzip, deflate")
+              $webClient.Headers.Add("Connection", "keep-alive")
+              $webClient.Headers.Add("Upgrade-Insecure-Requests", "1")
               
               # Event handler cho progress với proper event registration
               $eventJob = Register-ObjectEvent -InputObject $webClient -EventName DownloadProgressChanged -Action {
@@ -238,17 +238,17 @@ jobs:
         # Nếu tất cả WebClient attempts fail, thử Invoke-WebRequest đơn giản
         if (-not $downloadSuccess) {
           Write-Host "WebClient downloads failed, trying simple download method..."
-    try {
-      Write-Host "Attempting simple download from primary URL..."
-      $headers = @{
-        'User-Agent' = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        'Accept' = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
-        'Accept-Language' = 'en-US,en;q=0.5'
-        'Accept-Encoding' = 'gzip, deflate'
-        'Connection' = 'keep-alive'
-        'Upgrade-Insecure-Requests' = '1'
-      }
-      Invoke-WebRequest -Uri $isoUrl -OutFile $isoPath -UseBasicParsing -TimeoutSec 600 -Headers $headers
+          try {
+            Write-Host "Attempting simple download from primary URL..."
+            $headers = @{
+              'User-Agent' = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+              'Accept' = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
+              'Accept-Language' = 'en-US,en;q=0.5'
+              'Accept-Encoding' = 'gzip, deflate'
+              'Connection' = 'keep-alive'
+              'Upgrade-Insecure-Requests' = '1'
+            }
+            Invoke-WebRequest -Uri $isoUrl -OutFile $isoPath -UseBasicParsing -TimeoutSec 600 -Headers $headers
             
             $fileSize = (Get-Item $isoPath).Length
             $fileSizeGB = [math]::Round($fileSize / 1GB, 2)
