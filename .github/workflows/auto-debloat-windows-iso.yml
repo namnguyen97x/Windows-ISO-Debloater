@@ -109,13 +109,14 @@ jobs:
         
         Write-Host "Downloading Windows ISO from: $isoUrl"
         
-        # Fallback URLs nếu URL chính fail - sử dụng URLs hoạt động
-        $fallbackUrls = @(
-          "https://software.download.prss.microsoft.com/dbazure/Win11_25H2_English_x64.iso?t=d1a5a3e8-32ba-4bf6-9655-3b1785b1d44e&P1=1761468171&P2=601&P3=2&P4=TgPmVnaRJIXKrWv3dnoKNVmTq4NCRPTaIepZB4fjx3zqeC2YX36KRov6nULxRH9uLKMNbzJ4fkcOrVe4sYSQPf2BwqD3E%2bb8fH12uNiI9qKow8WjDQiasCkH%2b69Uc66%2f9Gro5OcswLtPby99e0pB5le6PSnu2t1yMkAAjNCaJ7s6%2bUicJ39K2aEHDUjbU7hYasU6BuQUqz0xeSEptTeZLpgo7UXa2OykZ3w3s2gzaugyEojm%2btNQl8EMmiUbN1Ol3Yn5GNuDrEzlYV6WIKhw6LnxOkdzlATRI0lEiTM%2fWX3v%2fnvKAf5fsOMxVJdlQlPh2iQbUzxfe6GURVzfKxQ3pQ%3d%3d",
-          "https://software-download.microsoft.com/download/pr/444969d5-f34g-4e03-ac9d-1f9786c69161/Win11_24H2_English_x64v1.iso",
-          "https://software-download.microsoft.com/download/sg/444969d5-f34g-4e03-ac9d-1f9786c69161/Win11_24H2_English_x64v1.iso",
-          "https://go.microsoft.com/fwlink/p/?LinkId=2124703"
-        )
+  # Fallback URLs nếu URL chính fail - sử dụng URLs hoạt động từ Archive.org và mirrors
+  $fallbackUrls = @(
+    "https://archive.org/download/windows-11-25h2-iso/Win11_25H2_English_x64.iso",
+    "https://archive.org/download/windows-11-24h2-iso/Win11_24H2_English_x64.iso",
+    "https://archive.org/download/windows-11-22h2-iso/Win11_22H2_English_x64.iso",
+    "https://archive.org/download/windows-10-22h2-iso/Win10_22H2_English_x64.iso",
+    "https://archive.org/download/windows-10-21h2-iso/Win10_21H2_English_x64.iso"
+  )
         
         $downloadSuccess = $false
         $ProgressPreference = 'SilentlyContinue'
@@ -125,9 +126,14 @@ jobs:
           Write-Host "Attempting download from primary URL..."
           Write-Host "URL: $isoUrl"
           
-          # Sử dụng WebClient để có progress tracking
-          $webClient = New-Object System.Net.WebClient
-          $webClient.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+    # Sử dụng WebClient để có progress tracking với headers tốt hơn
+    $webClient = New-Object System.Net.WebClient
+    $webClient.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+    $webClient.Headers.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
+    $webClient.Headers.Add("Accept-Language", "en-US,en;q=0.5")
+    $webClient.Headers.Add("Accept-Encoding", "gzip, deflate")
+    $webClient.Headers.Add("Connection", "keep-alive")
+    $webClient.Headers.Add("Upgrade-Insecure-Requests", "1")
           
           # Tạo event handler cho progress với proper event registration
           $eventJob = Register-ObjectEvent -InputObject $webClient -EventName DownloadProgressChanged -Action {
@@ -177,9 +183,14 @@ jobs:
             try {
               Write-Host "Trying fallback URL: $fallbackUrl"
               
-              # Sử dụng WebClient cho fallback URLs cũng
-              $webClient = New-Object System.Net.WebClient
-              $webClient.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+        # Sử dụng WebClient cho fallback URLs với headers tốt hơn
+        $webClient = New-Object System.Net.WebClient
+        $webClient.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        $webClient.Headers.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
+        $webClient.Headers.Add("Accept-Language", "en-US,en;q=0.5")
+        $webClient.Headers.Add("Accept-Encoding", "gzip, deflate")
+        $webClient.Headers.Add("Connection", "keep-alive")
+        $webClient.Headers.Add("Upgrade-Insecure-Requests", "1")
               
               # Event handler cho progress với proper event registration
               $eventJob = Register-ObjectEvent -InputObject $webClient -EventName DownloadProgressChanged -Action {
@@ -227,9 +238,17 @@ jobs:
         # Nếu tất cả WebClient attempts fail, thử Invoke-WebRequest đơn giản
         if (-not $downloadSuccess) {
           Write-Host "WebClient downloads failed, trying simple download method..."
-          try {
-            Write-Host "Attempting simple download from primary URL..."
-            Invoke-WebRequest -Uri $isoUrl -OutFile $isoPath -UseBasicParsing -TimeoutSec 600
+    try {
+      Write-Host "Attempting simple download from primary URL..."
+      $headers = @{
+        'User-Agent' = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        'Accept' = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
+        'Accept-Language' = 'en-US,en;q=0.5'
+        'Accept-Encoding' = 'gzip, deflate'
+        'Connection' = 'keep-alive'
+        'Upgrade-Insecure-Requests' = '1'
+      }
+      Invoke-WebRequest -Uri $isoUrl -OutFile $isoPath -UseBasicParsing -TimeoutSec 600 -Headers $headers
             
             $fileSize = (Get-Item $isoPath).Length
             $fileSizeGB = [math]::Round($fileSize / 1GB, 2)
@@ -245,10 +264,34 @@ jobs:
           }
         }
         
+        # Nếu tất cả PowerShell methods fail, thử curl
+        if (-not $downloadSuccess) {
+          Write-Host "PowerShell downloads failed, trying curl method..."
+          try {
+            Write-Host "Attempting curl download from primary URL..."
+            curl -L -o $isoPath -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" $isoUrl
+            
+            $fileSize = (Get-Item $isoPath).Length
+            $fileSizeGB = [math]::Round($fileSize / 1GB, 2)
+            Write-Host "Curl download completed! File size: $fileSizeGB GB"
+            
+            if ($fileSize -gt 1GB) {
+              $downloadSuccess = $true
+              Write-Host "✅ Download successful with curl method"
+            }
+          }
+          catch {
+            Write-Warning "Curl download also failed: $($_.Exception.Message)"
+          }
+        }
+        
         if (-not $downloadSuccess) {
           Write-Error "All download attempts failed. Please provide a custom ISO URL in the workflow inputs."
           Write-Host "You can get Windows ISO from: https://www.microsoft.com/en-us/software-download/windows11"
           Write-Host "Or try using a different ISO URL in the 'iso_url' input field."
+          Write-Host "Alternative sources:"
+          Write-Host "- Archive.org: https://archive.org/download/windows-11-25h2-iso/"
+          Write-Host "- Archive.org: https://archive.org/download/windows-11-24h2-iso/"
           exit 1
         }
         
