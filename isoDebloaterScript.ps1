@@ -769,33 +769,42 @@ function Remove-Packages {
         $pattern = $Patterns[$i]
         $displayName = $pattern.TrimEnd('*')
         $counter = "[{0}/{1}]" -f ($StartIndex + $i), $TotalCount
-        $initialOutput = "  $counter $displayName"
 
-        Write-Host $initialOutput -NoNewline    # Display initial output
+        # Display real-time progress: "Removing [package]..."
+        Write-Host "`n$counter Removing $displayName..." -ForegroundColor Yellow -NoNewline
+        [Console]::Out.Flush()  # Force immediate output
+        
         try {
             $items = & $cfg.GetCommand | Where-Object { $_.$filterProp -like $pattern }
             $itemsRemoved = 0
-            foreach ($item in $items) {
-                try {
-                    & $cfg.RemoveCommand $item 2>&1 | Write-Log
-                    $itemsRemoved++
-                }
-                catch {
-                    $itemName = $item.$filterProp
-                    Write-Log -msg "Removing $($cfg.LogPrefix) $itemName failed: $_"
-                }
-            }
             
-            # Show status
-            $padding = $StatusColumn - $initialOutput.Length
-            $spaces = ' ' * $padding
-            if ($itemsRemoved -gt 0) { Write-Host "$spaces[REMOVED]" -ForegroundColor Green }
-            else { Write-Host "$spaces[NOT FOUND]" -ForegroundColor Yellow }
+            if ($items.Count -gt 0) {
+                foreach ($item in $items) {
+                    $itemName = $item.$filterProp
+                    Write-Host "`n    → Removing $itemName..." -ForegroundColor Cyan -NoNewline
+                    [Console]::Out.Flush()  # Force immediate output
+                    
+                    try {
+                        & $cfg.RemoveCommand $item 2>&1 | Write-Log
+                        $itemsRemoved++
+                        Write-Host " [OK]" -ForegroundColor Green
+                        [Console]::Out.Flush()
+                    }
+                    catch {
+                        Write-Host " [FAILED]" -ForegroundColor Red
+                        [Console]::Out.Flush()
+                        $itemName = $item.$filterProp
+                        Write-Log -msg "Removing $($cfg.LogPrefix) $itemName failed: $_"
+                    }
+                }
+                Write-Host "$counter $displayName - Removed $itemsRemoved item(s)" -ForegroundColor Green
+            } else {
+                Write-Host " [NOT FOUND]" -ForegroundColor DarkGray
+            }
         }
         catch {
+            Write-Host " [ERROR]" -ForegroundColor Red
             Write-Log -msg "Failed to remove $PackageType matching '$pattern': $_"
-            $padding = $StatusColumn - $initialOutput.Length
-            Write-Host "$(' ' * $padding)[ERROR]" -ForegroundColor Red
         }
     }
 }
@@ -853,11 +862,26 @@ if ($DoOnedriveRemove) {
     $oneDriveShortcut = Join-Path -Path $installMountDir -ChildPath 'Users\Default\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\OneDrive.lnk'
 
     Write-Log -msg "Removing OneDrive"
+    
+    Write-Host "  → Removing OneDriveSetup.exe (System32)..." -ForegroundColor Yellow -NoNewline
+    [Console]::Out.Flush()
     Set-OwnAndRemove -Path $oneDriveSetupPath1 | Out-Null
+    Write-Host " [OK]" -ForegroundColor Green
+    [Console]::Out.Flush()
+    
+    Write-Host "  → Removing OneDriveSetup.exe (SysWOW64)..." -ForegroundColor Yellow -NoNewline
+    [Console]::Out.Flush()
     Set-OwnAndRemove -Path $oneDriveSetupPath2 | Out-Null
+    Write-Host " [OK]" -ForegroundColor Green
+    [Console]::Out.Flush()
+    
+    Write-Host "  → Removing OneDrive shortcut..." -ForegroundColor Yellow -NoNewline
+    [Console]::Out.Flush()
+    Set-OwnAndRemove -Path $oneDriveShortcut | Out-Null
+    Write-Host " [OK]" -ForegroundColor Green
+    [Console]::Out.Flush()
     # $oneDriveSetupPath3 | Where-Object { $_ } | ForEach-Object { Set-OwnAndRemove -Path $_ } 2>&1 | Write-Log
     # $oneDriveSetupPath4 | Where-Object { $_ } | ForEach-Object { Set-OwnAndRemove -Path $_ } 2>&1 | Write-Log
-    Set-OwnAndRemove -Path $oneDriveShortcut | Out-Null
 
     Write-Host ("[OK] OneDrive Removed") -ForegroundColor Green
     Write-Log -msg "OneDrive removed successfully"
@@ -879,11 +903,22 @@ if ($DoEDGERemove) {
     )
 
     # Remove Edge Packages
+    Write-Host "  → Removing Edge packages..." -ForegroundColor Yellow
+    [Console]::Out.Flush()
     foreach ($pattern in $EDGEpatterns) {
         $matchedPackages = Get-ProvisionedAppxPackage -Path $installMountDir | 
         Where-Object { $_.PackageName -like $pattern }
         foreach ($package in $matchedPackages) {
-            Invoke-DismFailsafe {Remove-ProvisionedAppxPackage -Path $installMountDir -PackageName $package.PackageName} {dism /image:$installMountDir /Remove-ProvisionedAppxPackage /PackageName:$($package.PackageName)}
+            Write-Host "    → Removing $($package.PackageName)..." -ForegroundColor Cyan -NoNewline
+            [Console]::Out.Flush()
+            try {
+                Invoke-DismFailsafe {Remove-ProvisionedAppxPackage -Path $installMountDir -PackageName $package.PackageName} {dism /image:$installMountDir /Remove-ProvisionedAppxPackage /PackageName:$($package.PackageName)}
+                Write-Host " [OK]" -ForegroundColor Green
+                [Console]::Out.Flush()
+            } catch {
+                Write-Host " [FAILED]" -ForegroundColor Red
+                [Console]::Out.Flush()
+            }
         }
     }
 
@@ -944,15 +979,29 @@ if ($DoEDGERemove) {
     }
 
     # Remove EDGE files
-    Remove-Item -Path "$installMountDir\Program Files\Microsoft\Edge" -Recurse -Force 2>&1 | Write-Log
-    Remove-Item -Path "$installMountDir\Program Files\Microsoft\EdgeCore" -Recurse -Force 2>&1 | Write-Log
-    Remove-Item -Path "$installMountDir\Program Files\Microsoft\EdgeUpdate" -Recurse -Force 2>&1 | Write-Log
-    Remove-Item -Path "$installMountDir\Program Files\Microsoft\EdgeWebView" -Recurse -Force 2>&1 | Write-Log
-    Remove-Item -Path "$installMountDir\Program Files (x86)\Microsoft\Edge" -Recurse -Force 2>&1 | Write-Log
-    Remove-Item -Path "$installMountDir\Program Files (x86)\Microsoft\EdgeCore" -Recurse -Force 2>&1 | Write-Log
-    Remove-Item -Path "$installMountDir\Program Files (x86)\Microsoft\EdgeUpdate" -Recurse -Force 2>&1 | Write-Log
-    Remove-Item -Path "$installMountDir\Program Files (x86)\Microsoft\EdgeWebView" -Recurse -Force 2>&1 | Write-Log
-    Remove-Item -Path "$installMountDir\ProgramData\Microsoft\EdgeUpdate" -Recurse -Force 2>&1 | Write-Log
+    Write-Host "  → Removing Edge files..." -ForegroundColor Yellow
+    [Console]::Out.Flush()
+    $edgePaths = @(
+        "$installMountDir\Program Files\Microsoft\Edge",
+        "$installMountDir\Program Files\Microsoft\EdgeCore",
+        "$installMountDir\Program Files\Microsoft\EdgeUpdate",
+        "$installMountDir\Program Files\Microsoft\EdgeWebView",
+        "$installMountDir\Program Files (x86)\Microsoft\Edge",
+        "$installMountDir\Program Files (x86)\Microsoft\EdgeCore",
+        "$installMountDir\Program Files (x86)\Microsoft\EdgeUpdate",
+        "$installMountDir\Program Files (x86)\Microsoft\EdgeWebView",
+        "$installMountDir\ProgramData\Microsoft\EdgeUpdate"
+    )
+    
+    foreach ($edgePath in $edgePaths) {
+        if (Test-Path $edgePath) {
+            Write-Host "    → Removing $edgePath..." -ForegroundColor Cyan -NoNewline
+            [Console]::Out.Flush()
+            Remove-Item -Path $edgePath -Recurse -Force 2>&1 | Write-Log
+            Write-Host " [OK]" -ForegroundColor Green
+            [Console]::Out.Flush()
+        }
+    }
     Get-ChildItem "$installMountDir\ProgramData\Microsoft\Windows\AppRepository\Packages\Microsoft.MicrosoftEdge.Stable*" -Directory | ForEach-Object { Set-OwnAndRemove -Path $_.FullName } 2>&1 | Write-Log
     Get-ChildItem "$installMountDir\ProgramData\Microsoft\Windows\AppRepository\Packages\Microsoft.MicrosoftEdgeDevToolsClient*" -Directory | ForEach-Object { Set-OwnAndRemove -Path $_.FullName } 2>&1 | Write-Log
     # Get-ChildItem "$installMountDir\Windows\WinSxS\*microsoft-edge-webview*" -Directory | ForEach-Object { Set-OwnAndRemove -Path $_.FullName } 2>&1 | Write-Log
@@ -979,6 +1028,8 @@ if ($DoAIRemove) {
     Write-Log -msg "Removing AI components"
     
     # Remove AI Packages
+    Write-Host "  → Removing AI packages..." -ForegroundColor Yellow
+    [Console]::Out.Flush()
     $AIpatterns = @(
         "Microsoft.Windows.Copilot*",
         "Microsoft.Copilot*"
@@ -987,18 +1038,33 @@ if ($DoAIRemove) {
         $matchedPackages = Get-ProvisionedAppxPackage -Path $installMountDir | 
         Where-Object { $_.PackageName -like $pattern }
         foreach ($package in $matchedPackages) {
-            Invoke-DismFailsafe {Remove-ProvisionedAppxPackage -Path $installMountDir -PackageName $package.PackageName} {dism /image:$installMountDir /Remove-ProvisionedAppxPackage /PackageName:$($package.PackageName)}
+            Write-Host "    → Removing $($package.PackageName)..." -ForegroundColor Cyan -NoNewline
+            [Console]::Out.Flush()
+            try {
+                Invoke-DismFailsafe {Remove-ProvisionedAppxPackage -Path $installMountDir -PackageName $package.PackageName} {dism /image:$installMountDir /Remove-ProvisionedAppxPackage /PackageName:$($package.PackageName)}
+                Write-Host " [OK]" -ForegroundColor Green
+                [Console]::Out.Flush()
+            } catch {
+                Write-Host " [FAILED]" -ForegroundColor Red
+                [Console]::Out.Flush()
+            }
         }
     }
 
     # Disable AI DLLs
+    Write-Host "  → Removing AI DLLs..." -ForegroundColor Yellow
+    [Console]::Out.Flush()
     $dllfiles = @('System32', 'SysWOW64') | ForEach-Object {
         Join-Path $installMountDir "Windows\$_\Windows.AI.MachineLearning.dll"
         Join-Path $installMountDir "Windows\$_\Windows.AI.MachineLearning.Preview.dll"
     }
     $dllfiles | Where-Object { Test-Path $_ } | ForEach-Object {
+        Write-Host "    → Removing $_..." -ForegroundColor Cyan -NoNewline
+        [Console]::Out.Flush()
         Set-Ownership -Path $_ | Out-Null
         Rename-Item $_ ($_ + ".bak") -Force 2>&1 | Write-Log
+        Write-Host " [OK]" -ForegroundColor Green
+        [Console]::Out.Flush()
     }
 
     # Modifying reg keys
@@ -1064,7 +1130,8 @@ if ($DoDefenderRemove) {
     
     # Remove Windows Defender packages (if available)
     if (-not $isLTSC) {
-        Write-Host "  Removing Windows Defender packages..." -ForegroundColor Yellow
+        Write-Host "  → Removing Windows Defender packages..." -ForegroundColor Yellow
+        [Console]::Out.Flush()
         $defenderPackages = Get-WindowsPackage -Path $installMountDir | Where-Object { 
             $_.PackageName -like "*Windows-Defender*" -or 
             $_.PackageName -like "*Defender*" -or
@@ -1072,6 +1139,8 @@ if ($DoDefenderRemove) {
         }
         
         foreach ($package in $defenderPackages) {
+            Write-Host "    → Removing $($package.PackageName)..." -ForegroundColor Cyan -NoNewline
+            [Console]::Out.Flush()
             try {
                 Write-Log -msg "Removing package: $($package.PackageName)"
                 Invoke-DismFailsafe {
@@ -1079,16 +1148,19 @@ if ($DoDefenderRemove) {
                 } {
                     dism /image:$installMountDir /Remove-Package /PackageName:$($package.PackageName) /NoRestart
                 }
-                Write-Host "    Removed: $($package.PackageName)" -ForegroundColor Green
+                Write-Host " [OK]" -ForegroundColor Green
+                [Console]::Out.Flush()
             } catch {
+                Write-Host " [FAILED]" -ForegroundColor Red
+                [Console]::Out.Flush()
                 Write-Log -msg "Failed to remove Defender package $($package.PackageName): $_"
-                Write-Host "    Failed: $($package.PackageName)" -ForegroundColor Yellow
             }
         }
     }
     
     # Disable Windows Defender services and registry (works for both standard and LTSC)
-    Write-Host "  Disabling Windows Defender services and registry..." -ForegroundColor Yellow
+    Write-Host "  → Disabling Windows Defender services and registry..." -ForegroundColor Yellow
+    [Console]::Out.Flush()
     try {
         reg load HKLM\zSOFTWARE "$installMountDir\Windows\System32\config\SOFTWARE" 2>&1 | Write-Log
         reg load HKLM\zSYSTEM "$installMountDir\Windows\System32\config\SYSTEM" 2>&1 | Write-Log
@@ -1129,7 +1201,8 @@ if ($DoDefenderRemove) {
         reg delete "HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\Run" /v "SecurityHealth" /f 2>&1 | Write-Log
         
         # Remove Windows Defender files (if available)
-        Write-Host "  Removing Windows Defender files..." -ForegroundColor Yellow
+        Write-Host "  → Removing Windows Defender files..." -ForegroundColor Yellow
+        [Console]::Out.Flush()
         $defenderPaths = @(
             "$installMountDir\Program Files\Windows Defender",
             "$installMountDir\Program Files (x86)\Windows Defender",
@@ -1139,10 +1212,16 @@ if ($DoDefenderRemove) {
         
         foreach ($defPath in $defenderPaths) {
             if (Test-Path $defPath) {
+                Write-Host "    → Removing $defPath..." -ForegroundColor Cyan -NoNewline
+                [Console]::Out.Flush()
                 try {
                     Set-OwnAndRemove -Path $defPath | Out-Null
+                    Write-Host " [OK]" -ForegroundColor Green
+                    [Console]::Out.Flush()
                     Write-Log -msg "Removed Defender path: $defPath"
                 } catch {
+                    Write-Host " [FAILED]" -ForegroundColor Red
+                    [Console]::Out.Flush()
                     Write-Log -msg "Could not remove Defender path: $defPath"
                 }
             }
