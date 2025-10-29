@@ -14,6 +14,7 @@ param(
     [ValidateSet("yes", "no")]$OnedriveRemove = "",
     [ValidateSet("yes", "no")]$EDGERemove = "",
     [ValidateSet("yes", "no")]$AIRemove = "",
+    [ValidateSet("yes", "no")]$DefenderRemove = "",
     [ValidateSet("yes", "no")]$TPMBypass = "",
     [ValidateSet("yes", "no")]$UserFoldersEnable = "",
     [ValidateSet("yes", "no")]$ESDConvert = "",
@@ -517,6 +518,7 @@ $DoCapabilitiesRemove = Get-ParameterValue -ParameterValue $CapabilitiesRemove -
 $DoOnedriveRemove = Get-ParameterValue -ParameterValue $OnedriveRemove -DefaultValue $true -Question "Remove OneDrive?" -Description "Optional: Completely removes OneDrive"
 $DoEDGERemove = Get-ParameterValue -ParameterValue $EDGERemove -DefaultValue $true -Question "Remove Microsoft Edge?" -Description "Optional: Removes Edge browser"
 $DoAIRemove = Get-ParameterValue -ParameterValue $AIRemove -DefaultValue $true -Question "Remove AI Components?" -Description "Optional: Removes everything related to AI"
+$DoDefenderRemove = Get-ParameterValue -ParameterValue $DefenderRemove -DefaultValue $false -Question "Remove Windows Defender?" -Description "Optional: Removes Windows Defender Antivirus (Compatible with LTSC)"
 $DoTPMBypass = Get-ParameterValue -ParameterValue $TPMBypass -DefaultValue $false -Question "Bypass TPM check?" -Description "Only if needed for older hardware"
 $DoUserFoldersEnable = Get-ParameterValue -ParameterValue $UserFoldersEnable -DefaultValue $true -Question "Enable user folders?" -Description "Recommended: Enables Desktop, Documents, etc."
 $DoESDConvert = Get-ParameterValue -ParameterValue $ESDConvert -DefaultValue $false -Question "Compress the ISO?" -Description "Recommended but slow: Reduces ISO file size"
@@ -904,6 +906,126 @@ if ($DoAIRemove) {
     Write-Log -msg "AI Components removal completed"
 } else {
     Write-Log -msg "AI Components removal skipped"
+}
+
+if ($DoDefenderRemove) {
+    # Remove Windows Defender (Compatible with LTSC)
+    Write-Host ("`n[INFO] Removing Windows Defender...") -ForegroundColor Cyan
+    Write-Log -msg "Removing Windows Defender"
+    
+    # Detect LTSC by checking for Windows Defender packages
+    $isLTSC = $false
+    try {
+        $defenderPackages = Get-WindowsPackage -Path $installMountDir | Where-Object { $_.PackageName -like "*Windows-Defender*" }
+        if ($defenderPackages.Count -eq 0) {
+            $isLTSC = $true
+            Write-Log -msg "LTSC detected: No Windows Defender packages found"
+        }
+    } catch {
+        Write-Log -msg "LTSC detection: Could not check packages"
+    }
+    
+    # Remove Windows Defender packages (if available)
+    if (-not $isLTSC) {
+        Write-Host "  Removing Windows Defender packages..." -ForegroundColor Yellow
+        $defenderPackages = Get-WindowsPackage -Path $installMountDir | Where-Object { 
+            $_.PackageName -like "*Windows-Defender*" -or 
+            $_.PackageName -like "*Defender*" -or
+            $_.PackageName -like "*Antimalware*"
+        }
+        
+        foreach ($package in $defenderPackages) {
+            try {
+                Write-Log -msg "Removing package: $($package.PackageName)"
+                Invoke-DismFailsafe {
+                    Remove-WindowsPackage -Path $installMountDir -PackageName $package.PackageName -ErrorAction Stop
+                } {
+                    dism /image:$installMountDir /Remove-Package /PackageName:$($package.PackageName) /NoRestart
+                }
+                Write-Host "    Removed: $($package.PackageName)" -ForegroundColor Green
+            } catch {
+                Write-Log -msg "Failed to remove Defender package $($package.PackageName): $_"
+                Write-Host "    Failed: $($package.PackageName)" -ForegroundColor Yellow
+            }
+        }
+    }
+    
+    # Disable Windows Defender services and registry (works for both standard and LTSC)
+    Write-Host "  Disabling Windows Defender services and registry..." -ForegroundColor Yellow
+    try {
+        reg load HKLM\zSOFTWARE "$installMountDir\Windows\System32\config\SOFTWARE" 2>&1 | Write-Log
+        reg load HKLM\zSYSTEM "$installMountDir\Windows\System32\config\SYSTEM" 2>&1 | Write-Log
+        reg load HKLM\zNTUSER "$installMountDir\Users\Default\ntuser.dat" 2>&1 | Write-Log
+        
+        # Disable Windows Defender via Group Policy
+        reg add "HKLM\zSOFTWARE\Policies\Microsoft\Windows Defender" /v "DisableAntiSpyware" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
+        reg add "HKLM\zSOFTWARE\Policies\Microsoft\Windows Defender" /v "DisableAntiVirus" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
+        reg add "HKLM\zSOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection" /v "DisableRealtimeMonitoring" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
+        reg add "HKLM\zSOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection" /v "DisableBehaviorMonitoring" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
+        reg add "HKLM\zSOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection" /v "DisableOnAccessProtection" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
+        reg add "HKLM\zSOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection" /v "DisableScanOnRealtimeEnable" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
+        reg add "HKLM\zSOFTWARE\Policies\Microsoft\Windows Defender\Spynet" /v "SpynetReporting" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
+        reg add "HKLM\zSOFTWARE\Policies\Microsoft\Windows Defender\Spynet" /v "SubmitSamplesConsent" /t REG_DWORD /d "2" /f 2>&1 | Write-Log
+        
+        # Disable Windows Defender via registry (for compatibility)
+        reg add "HKLM\zSOFTWARE\Microsoft\Windows Defender" /v "DisableAntiSpyware" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
+        reg add "HKLM\zSOFTWARE\Microsoft\Windows Defender\Real-Time Protection" /v "DisableRealtimeMonitoring" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
+        
+        # Disable Windows Defender Services
+        reg add "HKLM\zSYSTEM\CurrentControlSet\Services\WinDefend" /v "Start" /t REG_DWORD /d "4" /f 2>&1 | Write-Log
+        reg add "HKLM\zSYSTEM\CurrentControlSet\Services\WinDefend" /v "Enabled" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
+        reg add "HKLM\zSYSTEM\ControlSet001\Services\WinDefend" /v "Start" /t REG_DWORD /d "4" /f 2>&1 | Write-Log
+        reg add "HKLM\zSYSTEM\ControlSet001\Services\WinDefend" /v "Enabled" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
+        reg add "HKLM\zSYSTEM\CurrentControlSet\Services\SecurityHealthService" /v "Start" /t REG_DWORD /d "4" /f 2>&1 | Write-Log
+        reg add "HKLM\zSYSTEM\ControlSet001\Services\SecurityHealthService" /v "Start" /t REG_DWORD /d "4" /f 2>&1 | Write-Log
+        reg add "HKLM\zSYSTEM\CurrentControlSet\Services\WdNisSvc" /v "Start" /t REG_DWORD /d "4" /f 2>&1 | Write-Log
+        reg add "HKLM\zSYSTEM\ControlSet001\Services\WdNisSvc" /v "Start" /t REG_DWORD /d "4" /f 2>&1 | Write-Log
+        reg add "HKLM\zSYSTEM\CurrentControlSet\Services\Sense" /v "Start" /t REG_DWORD /d "4" /f 2>&1 | Write-Log
+        reg add "HKLM\zSYSTEM\ControlSet001\Services\Sense" /v "Start" /t REG_DWORD /d "4" /f 2>&1 | Write-Log
+        
+        # Disable Windows Defender in Windows Security Center
+        reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "DisableWindowsSecurityCenter" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
+        reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellServiceObjects\{FD6905CE-952F-41F1-9A9F-EAC49C3C6104}" /v "Start" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
+        
+        # Disable Windows Defender Scheduled Tasks
+        reg delete "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Run" /v "SecurityHealth" /f 2>&1 | Write-Log
+        reg delete "HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\Run" /v "SecurityHealth" /f 2>&1 | Write-Log
+        
+        # Remove Windows Defender files (if available)
+        Write-Host "  Removing Windows Defender files..." -ForegroundColor Yellow
+        $defenderPaths = @(
+            "$installMountDir\Program Files\Windows Defender",
+            "$installMountDir\Program Files (x86)\Windows Defender",
+            "$installMountDir\ProgramData\Microsoft\Windows Defender",
+            "$installMountDir\Windows\System32\WindowsPowerShell\v1.0\Modules\WindowsDefender"
+        )
+        
+        foreach ($defPath in $defenderPaths) {
+            if (Test-Path $defPath) {
+                try {
+                    Set-OwnAndRemove -Path $defPath | Out-Null
+                    Write-Log -msg "Removed Defender path: $defPath"
+                } catch {
+                    Write-Log -msg "Could not remove Defender path: $defPath"
+                }
+            }
+        }
+        
+        Write-Host ("[OK] Windows Defender removed") -ForegroundColor Green
+        Write-Log -msg "Windows Defender removal completed"
+    }
+    catch {
+        Write-Log -msg "Error modifying registry for Defender removal: $_"
+        Write-Host "  Warning: Some Defender settings may not have been applied" -ForegroundColor Yellow
+    }
+    finally {
+        # Always unload registry hives regardless of errors
+        reg unload HKLM\zSOFTWARE 2>&1 | Write-Log
+        reg unload HKLM\zSYSTEM 2>&1 | Write-Log
+        reg unload HKLM\zNTUSER 2>&1 | Write-Log
+    }
+} else {
+    Write-Log -msg "Windows Defender removal skipped"
 }
 
 # Registry Tweaks

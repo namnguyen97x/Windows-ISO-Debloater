@@ -340,7 +340,7 @@ jobs:
           $env:LINES = "24"
           
           # Run script with output redirection to avoid cursor issues
-          $process = Start-Process -FilePath "powershell.exe" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `".\isoDebloaterScript.ps1`" -noPrompt -isoPath `"$isoPath`" -winEdition `"$winEdition`" -outputISO `"$outputISO`" -AppxRemove $storeRemove -CapabilitiesRemove yes -OnedriveRemove yes -EDGERemove $edgeRemove -AIRemove $aiRemove -TPMBypass $tpmBypass -UserFoldersEnable yes -ESDConvert $esdConvert -useOscdimg yes" -Wait -PassThru -RedirectStandardOutput "script_output.txt" -RedirectStandardError "script_error.txt"
+          $process = Start-Process -FilePath "powershell.exe" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `".\isoDebloaterScript.ps1`" -noPrompt -isoPath `"$isoPath`" -winEdition `"$winEdition`" -outputISO `"$outputISO`" -AppxRemove $storeRemove -CapabilitiesRemove yes -OnedriveRemove yes -EDGERemove $edgeRemove -AIRemove $aiRemove -DefenderRemove $defenderRemove -TPMBypass $tpmBypass -UserFoldersEnable yes -ESDConvert $esdConvert -useOscdimg yes" -Wait -PassThru -RedirectStandardOutput "script_output.txt" -RedirectStandardError "script_error.txt"
           
           # Display output
           if (Test-Path "script_output.txt") {
