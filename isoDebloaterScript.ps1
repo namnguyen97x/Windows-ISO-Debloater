@@ -308,6 +308,79 @@ function Get-ImageIndex {
     }
 }
 
+# Auto-detect Windows Edition from ImageName
+function Get-AutoDetectedEdition {
+    param (
+        [Parameter(Mandatory = $true)][array]$ImageList,
+        [Parameter(Mandatory = $false)][string]$PreferredEdition = ""
+    )
+    
+    if ($ImageList.Count -eq 0) {
+        Write-Log -msg "No images found for auto-detection"
+        return $null
+    }
+    
+    # Priority order: Pro > Enterprise > Home > LTSC
+    $priorityOrder = @("Pro", "Enterprise", "Home", "LTSC")
+    
+    # If preferred edition is specified, try to find it first
+    if ($PreferredEdition -and $PreferredEdition -ne "auto") {
+        $preferredMatch = $ImageList | Where-Object { 
+            $_.ImageName -match $PreferredEdition -or 
+            $_.ImageName -like "*$PreferredEdition*" 
+        } | Select-Object -First 1
+        
+        if ($preferredMatch) {
+            Write-Log -msg "Found preferred edition: $($preferredMatch.ImageName)"
+            return $preferredMatch
+        }
+    }
+    
+    # Try to find editions in priority order
+    foreach ($edition in $priorityOrder) {
+        $match = $ImageList | Where-Object { 
+            $_.ImageName -match $edition -or 
+            $_.ImageName -like "*$edition*" 
+        } | Select-Object -First 1
+        
+        if ($match) {
+            Write-Log -msg "Auto-detected edition: $($match.ImageName)"
+            return $match
+        }
+    }
+    
+    # If no match found, return the first image
+    Write-Log -msg "No specific edition found, using first image: $($ImageList[0].ImageName)"
+    return $ImageList[0]
+}
+
+# Extract edition name from ImageName for better matching
+function Get-EditionFromImageName {
+    param ( [Parameter(Mandatory = $true)][string]$ImageName )
+    
+    $ImageNameLower = $ImageName.ToLower()
+    
+    # Check for LTSC first (most specific)
+    if ($ImageNameLower -match "ltsc|long term servicing channel") {
+        return "LTSC"
+    }
+    # Check for Enterprise
+    elseif ($ImageNameLower -match "enterprise") {
+        return "Enterprise"
+    }
+    # Check for Pro
+    elseif ($ImageNameLower -match "pro|professional") {
+        return "Pro"
+    }
+    # Check for Home
+    elseif ($ImageNameLower -match "home") {
+        return "Home"
+    }
+    
+    # Return original if no match
+    return $ImageName
+}
+
 # Oscdimg Path
 $OscdimgPath = "$env:SystemDrive\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\Oscdimg"
 $Oscdimg = Join-Path -Path $OscdimgPath -ChildPath 'oscdimg.exe'
@@ -416,13 +489,45 @@ if (-not (Test-Path $installWimPath)) {
             foreach ($image in $esdInfo) {
                 Write-Host "$($image.Index). $($image.ImageName)"
             }
-            # If winEdition is specified, find the index; else prompt user
-            if ($winEdition) {
-                $matchedImage = $esdInfo | Where-Object { $_.ImageName -ieq $winEdition }
-                if ($matchedImage) { $sourceIndex = $matchedImage.Index }
-                else { $sourceIndex = 1 }
+            # Handle auto-detection or manual selection
+            if ($winEdition -ieq "auto") {
+                Write-Host "`nAuto-detecting Windows Edition..." -ForegroundColor Cyan
+                $detectedImage = Get-AutoDetectedEdition -ImageList $esdInfo
+                if ($detectedImage) {
+                    $sourceIndex = $detectedImage.Index
+                    $winEdition = Get-EditionFromImageName -ImageName $detectedImage.ImageName
+                    Write-Host "Auto-detected: $($detectedImage.ImageName) -> Using Edition: $winEdition" -ForegroundColor Green
+                    Write-Log -msg "Auto-detected edition: $winEdition from image: $($detectedImage.ImageName)"
+                } else {
+                    $sourceIndex = 1
+                    Write-Host "Auto-detection failed, using first image (Index 1)" -ForegroundColor Yellow
+                    Write-Log -msg "Auto-detection failed, using index 1"
+                }
             }
-            else { $sourceIndex = Read-Host -Prompt "`nEnter the index to convert and mount" }
+            elseif ($winEdition) {
+                # Try exact match first
+                $matchedImage = $esdInfo | Where-Object { $_.ImageName -ieq $winEdition }
+                if (-not $matchedImage) {
+                    # Try partial match
+                    $matchedImage = $esdInfo | Where-Object { 
+                        $_.ImageName -match $winEdition -or 
+                        $_.ImageName -like "*$winEdition*" 
+                    } | Select-Object -First 1
+                }
+                if ($matchedImage) { 
+                    $sourceIndex = $matchedImage.Index
+                    Write-Host "Matched edition: $($matchedImage.ImageName)" -ForegroundColor Green
+                    Write-Log -msg "Matched edition: $($matchedImage.ImageName)"
+                }
+                else { 
+                    $sourceIndex = 1
+                    Write-Host "Edition '$winEdition' not found, using first image (Index 1)" -ForegroundColor Yellow
+                    Write-Log -msg "Edition '$winEdition' not found, using index 1"
+                }
+            }
+            else { 
+                $sourceIndex = Read-Host -Prompt "`nEnter the index to convert and mount" 
+            }
             # Check if the index is valid, print selected "ImageIndex - ImageName"
             $selectedImage = $esdInfo | Where-Object { $_.Index -eq [int]$sourceIndex }
             if ($selectedImage) {
@@ -468,13 +573,45 @@ else {
         foreach ($image in $wimInfo) {
             Write-Host "$($image.Index). $($image.ImageName)"
         }
-        # If winEdition is specified, find the index; else prompt user
-        if ($winEdition) {
-            $matchedImage = $wimInfo | Where-Object { $_.ImageName -ieq $winEdition }
-            if ($matchedImage) { $sourceIndex = $matchedImage.Index }
-            else { $sourceIndex = 1 }
+        # Handle auto-detection or manual selection
+        if ($winEdition -ieq "auto") {
+            Write-Host "`nAuto-detecting Windows Edition..." -ForegroundColor Cyan
+            $detectedImage = Get-AutoDetectedEdition -ImageList $wimInfo
+            if ($detectedImage) {
+                $sourceIndex = $detectedImage.Index
+                $winEdition = Get-EditionFromImageName -ImageName $detectedImage.ImageName
+                Write-Host "Auto-detected: $($detectedImage.ImageName) -> Using Edition: $winEdition" -ForegroundColor Green
+                Write-Log -msg "Auto-detected edition: $winEdition from image: $($detectedImage.ImageName)"
+            } else {
+                $sourceIndex = 1
+                Write-Host "Auto-detection failed, using first image (Index 1)" -ForegroundColor Yellow
+                Write-Log -msg "Auto-detection failed, using index 1"
+            }
         }
-        else { $sourceIndex = Read-Host -Prompt "`nEnter the index to mount" }
+        elseif ($winEdition) {
+            # Try exact match first
+            $matchedImage = $wimInfo | Where-Object { $_.ImageName -ieq $winEdition }
+            if (-not $matchedImage) {
+                # Try partial match
+                $matchedImage = $wimInfo | Where-Object { 
+                    $_.ImageName -match $winEdition -or 
+                    $_.ImageName -like "*$winEdition*" 
+                } | Select-Object -First 1
+            }
+            if ($matchedImage) { 
+                $sourceIndex = $matchedImage.Index
+                Write-Host "Matched edition: $($matchedImage.ImageName)" -ForegroundColor Green
+                Write-Log -msg "Matched edition: $($matchedImage.ImageName)"
+            }
+            else { 
+                $sourceIndex = 1
+                Write-Host "Edition '$winEdition' not found, using first image (Index 1)" -ForegroundColor Yellow
+                Write-Log -msg "Edition '$winEdition' not found, using index 1"
+            }
+        }
+        else { 
+            $sourceIndex = Read-Host -Prompt "`nEnter the index to mount" 
+        }
         # Check if the index is valid, print selected "ImageIndex - ImageName"
         $selectedImage = $wimInfo | Where-Object { $_.Index -eq [int]$sourceIndex }
         if ($selectedImage) {
