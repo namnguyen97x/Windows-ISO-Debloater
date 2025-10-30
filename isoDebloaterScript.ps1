@@ -783,39 +783,38 @@ $appxPatternsToRemove = @(
     "Microsoft.Office.OneNote*",                # OneNote
     "Microsoft.OutlookForWindows*",             # Outlook
     "Microsoft.MSPaint*",                       # Paint3D(Windows10)
-    # "Microsoft.People*",                        # People (kept - required for Mail & Calendar)
-    # "Microsoft.YourPhone*",                     # Phone Link (kept)
+    "Microsoft.People*",                        # People
+    "Microsoft.YourPhone*",                     # Phone Link
     "Microsoft.PowerAutomateDesktop*",          # PowerAutomate
     "MicrosoftCorporationII.QuickAssist*",      # QuickAssist
     "Microsoft.SkypeApp*",                      # Skype
     "Microsoft.MicrosoftSolitaireCollection*",  # SolitaireCollection
-    # "Microsoft.WindowsSoundRecorder*",          # SoundRecorder
+    "Microsoft.WindowsSoundRecorder*",          # SoundRecorder
     "MicrosoftTeams*",                          # Teams_old
     "MSTeams*",                                 # Teams
     "Microsoft.Windows.Teams*",                 # Teams
     "Microsoft.Todos*",                         # Todos
     "Microsoft.ZuneVideo*",                     # Video
     "Microsoft.Wallet*",                        # Wallet
-    # "Microsoft.GamingApp*",                     # Xbox Gaming App (kept)
+    "Microsoft.GamingApp*",                     # Xbox Gaming App
     "Microsoft.XboxApp*",                       # Xbox Console Companion (old, not supported)
-    # "Microsoft.XboxGameOverlay*",               # Xbox Game Overlay (kept)
-    # "Microsoft.XboxGamingOverlay*",             # Xbox Gaming Overlay (kept)
-    # "Microsoft.XboxSpeechToTextOverlay*",       # Xbox Speech To Text (kept)
-    # "Microsoft.Xbox.TCUI*",                     # Xbox TCUI (kept)
-    # "Microsoft.SecHealthUI*",                   # Windows Security (kept)
-    # "MicrosoftWindows.CrossDevice*",            # Cross Device (kept - part of Phone Link)
+    "Microsoft.XboxGameOverlay*",               # Xbox Game Overlay
+    "Microsoft.XboxGamingOverlay*",             # Xbox Gaming Overlay
+    "Microsoft.XboxSpeechToTextOverlay*",       # Xbox Speech To Text
+    "Microsoft.Xbox.TCUI*",                     # Xbox TCUI
+    "Microsoft.SecHealthUI*",                   # Windows Security
+    "MicrosoftWindows.CrossDevice*",            # Cross Device
     "Microsoft.Windows.PeopleExperienceHost*",  # PeopleExperienceHost
     "Windows.CBSPreview*",                      # CBS Preview
-    # "Microsoft.BingSearch*",                    # Bing Search (kept)
-    # "Microsoft.WindowsStore*",                 # Microsoft Store (kept - warning: hard to reinstall)
+    "Microsoft.BingSearch*",                    # Bing Search
+    "Microsoft.WindowsStore*",                 # Microsoft Store
     # "Microsoft.WindowsCalculator*",           # Calculator (kept)
-    # "Microsoft.WindowsCamera*",                # Camera (kept)
+    "Microsoft.WindowsCamera*",                # Camera
     # "Microsoft.WindowsNotepad*",               # Notepad (kept)
-    # "Microsoft.Windows.Photos*",               # Photos (kept)
-    # "Microsoft.ScreenSketch*",                 # Snipping Tool (kept)
-    # "Microsoft.WindowsTerminal*",              # Windows Terminal (kept)
+    "Microsoft.Windows.Photos*",               # Photos
+    "Microsoft.ScreenSketch*",                 # Snipping Tool
+    "Microsoft.WindowsTerminal*",              # Windows Terminal
     "Microsoft.WindowsTerminalPreview*",       # Windows Terminal Preview
-    "Microsoft.WindowsSoundRecorder*",          # Sound Recorder
     # "Microsoft.WindowsRemoteDesktop*",          # Remote Desktop (kept)
     "Microsoft.DesktopAppInstaller*",           # App Installer
     "Microsoft.WindowsWebExperiencePack*",      # Web Experience Pack
@@ -834,7 +833,7 @@ $appxPatternsToRemove = @(
     "Microsoft.Windows.WifiSense*",             # WiFi Sense
     "Microsoft.Windows.AssignedAccessLockApp*", # Assigned Access Lock App
     "Microsoft.Windows.XboxGameCallableUI*",    # Xbox Game Callable UI
-    # "Microsoft.XboxIdentityProvider*",        # Xbox Identity Provider (kept)
+    "Microsoft.XboxIdentityProvider*",        # Xbox Identity Provider
     "Microsoft.XboxGameSpeechWindow*",          # Xbox Game Speech Window
     
     # OEM Apps - Games
