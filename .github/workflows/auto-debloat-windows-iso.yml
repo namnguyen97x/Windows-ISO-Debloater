@@ -12,12 +12,12 @@ on:
         required: true
         type: choice
         options:
-          - 'auto'
+          - 'Auto'
           - 'Pro'
           - 'Home'
           - 'Enterprise'
           - 'LTSC'
-        default: 'auto'
+        default: 'Auto'
       iso_filename:
         description: 'Output ISO filename (without extension)'
         required: true
