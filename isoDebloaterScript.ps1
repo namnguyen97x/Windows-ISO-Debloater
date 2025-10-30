@@ -1737,6 +1737,7 @@ if ($DoTPMBypass) {
         @{Key="HKLM\zSYSTEM\Setup\LabConfig"; Value="BypassCPUCheck"; Type="REG_DWORD"; Data="1"},
         @{Key="HKLM\zSYSTEM\Setup\LabConfig"; Value="BypassRAMCheck"; Type="REG_DWORD"; Data="1"},
         @{Key="HKLM\zSYSTEM\Setup\LabConfig"; Value="BypassDiskCheck"; Type="REG_DWORD"; Data="1"},
+        @{Key="HKLM\zSYSTEM\Setup\LabConfig"; Value="BypassProductKeyCheck"; Type="REG_DWORD"; Data="1"},
         @{Key="HKLM\zSYSTEM\Setup\MoSetup"; Value="AllowUpgradesWithUnsupportedTPMOrCPU"; Type="REG_DWORD"; Data="1"}
     )
     
@@ -1825,6 +1826,7 @@ if ($DoTPMBypass) {
             @{Key="HKLM\xSYSTEM\Setup\LabConfig"; Value="BypassCPUCheck"; Type="REG_DWORD"; Data="1"},
             @{Key="HKLM\xSYSTEM\Setup\LabConfig"; Value="BypassRAMCheck"; Type="REG_DWORD"; Data="1"},
             @{Key="HKLM\xSYSTEM\Setup\LabConfig"; Value="BypassDiskCheck"; Type="REG_DWORD"; Data="1"},
+            @{Key="HKLM\xSYSTEM\Setup\LabConfig"; Value="BypassProductKeyCheck"; Type="REG_DWORD"; Data="1"},
             @{Key="HKLM\xSYSTEM\Setup\MoSetup"; Value="AllowUpgradesWithUnsupportedTPMOrCPU"; Type="REG_DWORD"; Data="1"},
             @{Key="HKLM\xDEFAULT\Control Panel\UnsupportedHardwareNotificationCache"; Value="SV1"; Type="REG_DWORD"; Data="0"},
             @{Key="HKLM\xDEFAULT\Control Panel\UnsupportedHardwareNotificationCache"; Value="SV2"; Type="REG_DWORD"; Data="0"},

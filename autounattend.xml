@@ -28,9 +28,9 @@
             <UserData>
                 <ProductKey>
                     <Key></Key>
-                    <WillShowUI>Always</WillShowUI>
+                    <WillShowUI>Never</WillShowUI>
                 </ProductKey>
-                <AcceptEula>false</AcceptEula>
+                <AcceptEula>true</AcceptEula>
             </UserData>
             <EnableNetwork>false</EnableNetwork>
             <EnableFirewall>true</EnableFirewall>
