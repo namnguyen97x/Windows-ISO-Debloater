@@ -790,8 +790,35 @@ $appxPatternsToRemove = @(
     "MicrosoftWindows.CrossDevice*",            # CrossDevice
     "Microsoft.Windows.PeopleExperienceHost*",  # PeopleExperienceHost
     "Windows.CBSPreview*",                      # CBS Preview
-    "Microsoft.BingSearch*"                     # Bing Search
-)
+    "Microsoft.BingSearch*",                    # Bing Search
+    "Microsoft.WindowsStore*",                 # Microsoft Store
+    "Microsoft.WindowsCamera*",                 # Camera
+    "Microsoft.WindowsSoundRecorder*",          # Sound Recorder
+    "Microsoft.WindowsTerminal*",               # Windows Terminal
+    "Microsoft.WindowsTerminalPreview*",       # Windows Terminal Preview
+    "Microsoft.Windows.Photos*",                # Photos
+    "Microsoft.ScreenSketch*",                  # Snip & Sketch
+    "Microsoft.ScreenSketchMain*",              # Snip & Sketch (alternative)
+    "Microsoft.WindowsRemoteDesktop*",          # Remote Desktop
+    "Microsoft.DesktopAppInstaller*",           # App Installer
+    "Microsoft.WindowsWebExperiencePack*",      # Web Experience Pack
+    "Microsoft.MicrosoftEdgeUpdate*",            # Edge Update
+    "Microsoft.Services.Store.Engagement*",      # Store Engagement
+    "Microsoft.StorePurchaseApp*",               # Store Purchase App
+    "Microsoft.WindowsStorePurchaseApp*",        # Windows Store Purchase App
+    "Microsoft.BingTranslator*",                # Bing Translator
+    "Microsoft.Windows.PrintQueue*",            # Print Queue
+    "Microsoft.Windows.InkWorkSpace*",          # Ink Workspace
+    "Microsoft.Windows.ParentalControls*",      # Parental Controls
+    "Microsoft.Windows.ReadingList*",           # Reading List
+    "Microsoft.Windows.SecureAssessmentBrowser*", # Secure Assessment Browser
+    "Microsoft.Windows.Search.Cortana*",        # Cortana Search
+    "Microsoft.Windows.TouchKeyboard*",         # Touch Keyboard
+    "Microsoft.Windows.WifiSense*",             # WiFi Sense
+    "Microsoft.Windows.AssignedAccessLockApp*", # Assigned Access Lock App
+    "Microsoft.Windows.XboxGameCallableUI*",    # Xbox Game Callable UI
+    "Microsoft.XboxIdentityProvider*",           # Xbox Identity Provider
+    "Microsoft.XboxGameSpeechWindow*"           # Xbox Game Speech Window
 
 $capabilitiesToRemove = @(
     "Browser.InternetExplorer*",
