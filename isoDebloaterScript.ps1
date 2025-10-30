@@ -424,15 +424,20 @@ Write-Host "`nSelected ISO file: " -NoNewline -ForegroundColor Cyan; Write-Host 
 Write-Log -msg "ISO Path: $isoFilePath"
 
 # Mounting ISO File
+Write-Host "`n[INFO] Mounting ISO file..." -ForegroundColor Cyan
+[Console]::Out.Flush()
 $mountResult = Mount-DiskImage -ImagePath "$isoFilePath" -PassThru
 if ($mountResult) {
     $sourceDriveLetter = ($mountResult | Get-Volume).DriveLetter
     if ($sourceDriveLetter) {
+        Write-Host "[OK] ISO mounted to drive: $sourceDriveLetter`:" -ForegroundColor Green
+        [Console]::Out.Flush()
         Write-Log -msg "Mounted ISO file to drive: $sourceDriveLetter`:"
     }
 }
 else {
-    Write-Host "Failed to mount the ISO file." -ForegroundColor Red
+    Write-Host "[FAILED] Failed to mount the ISO file." -ForegroundColor Red
+    [Console]::Out.Flush()
     Write-Log -msg "Failed to mount the ISO file."
     Pause
     Exit
@@ -443,26 +448,59 @@ $destinationPath = "$env:SystemDrive\WIDTemp\winlite"               # Destinatio
 $installMountDir = "$env:SystemDrive\WIDTemp\mountdir\installWIM"   # Mount Directory
 
 # Copy Files
-Write-Host "`nCopying files from " -NoNewline; Write-Host "`"$sourceDrive`"" -ForegroundColor Yellow -NoNewline; Write-Host " to " -NoNewline; Write-Host "`"$destinationPath`"" -ForegroundColor Yellow; Write-Log -msg "Copying files from $sourceDrive to $destinationPath"
+Write-Host "`n[INFO] Copying files from ISO..." -ForegroundColor Cyan
+Write-Host "  Source: $sourceDrive" -ForegroundColor Yellow
+Write-Host "  Destination: $destinationPath" -ForegroundColor Yellow
+[Console]::Out.Flush()
+Write-Log -msg "Copying files from $sourceDrive to $destinationPath"
 try {
-    if (-not (Test-Path $destinationPath)) { New-Item -ItemType Directory -Path $destinationPath -Force -EA Stop | Out-Null }
+    if (-not (Test-Path $destinationPath)) { 
+        Write-Host "  → Creating destination directory..." -ForegroundColor Cyan -NoNewline
+        [Console]::Out.Flush()
+        New-Item -ItemType Directory -Path $destinationPath -Force -EA Stop | Out-Null
+        Write-Host " [OK]" -ForegroundColor Green
+        [Console]::Out.Flush()
+    }
     Write-Log -msg "Starting file copy operation..."
+    Write-Host "  → Copying files (this may take a while)..." -ForegroundColor Yellow
+    [Console]::Out.Flush()
     
     # Using Robocopy to copy files
     $robocopyOutput = & robocopy.exe $sourceDrive $destinationPath /E /COPY:DAT /R:3 /W:5 /MT:8 /NFL /NDL /NP 2>&1
     $robocopyExitCode = $LASTEXITCODE
     $robocopyOutput | Write-Log
     if ($robocopyExitCode -le 7) { 
-        Write-Host "Copy completed successfully." -ForegroundColor Green
+        Write-Host "  → Copy completed successfully [OK]" -ForegroundColor Green
+        [Console]::Out.Flush()
         Write-Log -msg "Copy completed (Exit: $robocopyExitCode)"
+        Write-Host "  → Removing read-only attributes..." -ForegroundColor Yellow -NoNewline
+        [Console]::Out.Flush()
         Write-Log -msg "Removing read-only attributes..."
         Get-ChildItem -Path $destinationPath -Recurse | ForEach-Object { $_.Attributes = $_.Attributes -band (-bnot [System.IO.FileAttributes]::ReadOnly) } | Out-Null
+        Write-Host " [OK]" -ForegroundColor Green
+        [Console]::Out.Flush()
     }
     else { throw "Robocopy failed: $robocopyExitCode" }
-} catch { Write-Log -msg "Copy failed: $($_.Exception.Message)"; throw }
+} catch { 
+    Write-Host " [FAILED]" -ForegroundColor Red
+    [Console]::Out.Flush()
+    Write-Log -msg "Copy failed: $($_.Exception.Message)"; throw 
+}
 
-try { if (Test-Path $isoFilePath) { Dismount-DiskImage -ImagePath $isoFilePath -EA Stop | Out-Null} }
-catch { Write-Log -msg "Dismount failed: $($_.Exception.Message)" }
+Write-Host "  → Unmounting ISO..." -ForegroundColor Yellow -NoNewline
+[Console]::Out.Flush()
+try { 
+    if (Test-Path $isoFilePath) { 
+        Dismount-DiskImage -ImagePath $isoFilePath -EA Stop | Out-Null
+        Write-Host " [OK]" -ForegroundColor Green
+        [Console]::Out.Flush()
+    }
+}
+catch { 
+    Write-Host " [WARNING]" -ForegroundColor Yellow
+    [Console]::Out.Flush()
+    Write-Log -msg "Dismount failed: $($_.Exception.Message)" 
+}
 
 # Check files availability
 $installWimPath = Join-Path $destinationPath "sources\install.wim"
@@ -471,11 +509,14 @@ New-Item -ItemType Directory -Path $installMountDir 2>&1 | Write-Log
 
 # Handling install.wim and install.esd
 if (-not (Test-Path $installWimPath)) {
-    Write-Host "`ninstall.wim not found. Searching for install.esd..."
+    Write-Host "`n[INFO] install.wim not found. Searching for install.esd..." -ForegroundColor Cyan
+    [Console]::Out.Flush()
     if (Test-Path $installEsdPath) {
-        Write-Host "`ninstall.esd found at " -NoNewline -ForegroundColor Cyan; Write-Host "$installEsdPath"
+        Write-Host "[OK] install.esd found at $installEsdPath" -ForegroundColor Green
+        [Console]::Out.Flush()
         Write-Log -msg "install.esd found. Converting..."
-        Write-Host "Details for image: " -NoNewline -ForegroundColor Cyan; Write-Host "$installEsdPath"
+        Write-Host "`n[INFO] Getting image details from install.esd..." -ForegroundColor Cyan
+        [Console]::Out.Flush()
         try {
             # Get image info from install.esd
             $esdInfo = Get-ImageIndex -ImagePath $installEsdPath
@@ -531,16 +572,40 @@ if (-not (Test-Path $installWimPath)) {
             # Check if the index is valid, print selected "ImageIndex - ImageName"
             $selectedImage = $esdInfo | Where-Object { $_.Index -eq [int]$sourceIndex }
             if ($selectedImage) {
-                Write-Host "`nMounting image: " -NoNewline -ForegroundColor Cyan; Write-Host "$sourceIndex. $($selectedImage.ImageName)"
+                Write-Host "`n[INFO] Converting and mounting image..." -ForegroundColor Cyan
+                Write-Host "  Image: $sourceIndex. $($selectedImage.ImageName)" -ForegroundColor Yellow
+                [Console]::Out.Flush()
                 Write-Log -msg "Converting and Mounting image: $sourceIndex. $($selectedImage.ImageName)"
             }
 
             # Convert ESD to WIM
-            Invoke-DismFailsafe {Export-WindowsImage -SourceImagePath $installEsdPath -SourceIndex $sourceIndex -DestinationImagePath $installWimPath -CompressionType Maximum -CheckIntegrity} {dism /Export-Image /SourceImageFile:$installEsdPath /SourceIndex:$sourceIndex /DestinationImageFile:$installWimPath /Compress:max /CheckIntegrity}
+            Write-Host "  → Converting ESD to WIM (this may take a while)..." -ForegroundColor Yellow
+            [Console]::Out.Flush()
+            Invoke-DismFailsafe {
+                Export-WindowsImage -SourceImagePath $installEsdPath -SourceIndex $sourceIndex -DestinationImagePath $installWimPath -CompressionType Maximum -CheckIntegrity
+            } {
+                dism /Export-Image /SourceImageFile:$installEsdPath /SourceIndex:$sourceIndex /DestinationImageFile:$installWimPath /Compress:max /CheckIntegrity
+            }
+            Write-Host "  → ESD conversion completed [OK]" -ForegroundColor Green
+            [Console]::Out.Flush()
+            
             # Remove the ESD file after conversion
+            Write-Host "  → Removing ESD file..." -ForegroundColor Yellow -NoNewline
+            [Console]::Out.Flush()
             Remove-Item $installEsdPath -Force
+            Write-Host " [OK]" -ForegroundColor Green
+            [Console]::Out.Flush()
+            
             # Mount the converted WIM with SourceIndex 1
-            Invoke-DismFailsafe {Mount-WindowsImage -ImagePath $installWimPath -Index 1 -Path $installMountDir} {dism /mount-image /imagefile:$installWimPath /index:1 /mountdir:$installMountDir}
+            Write-Host "  → Mounting converted WIM image..." -ForegroundColor Yellow
+            [Console]::Out.Flush()
+            Invoke-DismFailsafe {
+                Mount-WindowsImage -ImagePath $installWimPath -Index 1 -Path $installMountDir
+            } {
+                dism /mount-image /imagefile:$installWimPath /index:1 /mountdir:$installMountDir
+            }
+            Write-Host "  → Image mounted successfully [OK]" -ForegroundColor Green
+            [Console]::Out.Flush()
             $sourceIndex = 1  # After conversion, the new WIM will have only one image
         }
         catch {
@@ -615,11 +680,21 @@ else {
         # Check if the index is valid, print selected "ImageIndex - ImageName"
         $selectedImage = $wimInfo | Where-Object { $_.Index -eq [int]$sourceIndex }
         if ($selectedImage) {
-            Write-Host "`nMounting image: " -NoNewline -ForegroundColor Cyan; Write-Host "$sourceIndex. $($selectedImage.ImageName)"
+            Write-Host "`n[INFO] Mounting Windows image..." -ForegroundColor Cyan
+            Write-Host "  Image: $sourceIndex. $($selectedImage.ImageName)" -ForegroundColor Yellow
+            [Console]::Out.Flush()
             Write-Log -msg "Mounting image: $sourceIndex. $($selectedImage.ImageName)"
         }
 
-        Invoke-DismFailsafe {Mount-WindowsImage -ImagePath $installWimPath -Index $sourceIndex -Path $installMountDir} {dism /mount-image /imagefile:$installWimPath /index:$sourceIndex /mountdir:$installMountDir}
+        Write-Host "  → Mounting image (this may take a while)..." -ForegroundColor Yellow
+        [Console]::Out.Flush()
+        Invoke-DismFailsafe {
+            Mount-WindowsImage -ImagePath $installWimPath -Index $sourceIndex -Path $installMountDir
+        } {
+            dism /mount-image /imagefile:$installWimPath /index:$sourceIndex /mountdir:$installMountDir
+        }
+        Write-Host "  → Image mounted successfully [OK]" -ForegroundColor Green
+        [Console]::Out.Flush()
     }
     catch {
         Write-Host "Failed to mount the image: $_" -ForegroundColor Red
@@ -631,23 +706,33 @@ else {
 
 # Check if wim-mount was successful
 if (-not (Test-Path "$installMountDir\Windows")) {
-    Write-Host "Error while mounting image. Try again." -ForegroundColor Red
+    Write-Host "[FAILED] Error while mounting image. Try again." -ForegroundColor Red
+    [Console]::Out.Flush()
     Write-Log -msg "Mounted image not found. Exiting"
     Remove-TempFiles
     Pause
     Exit 
 }
 
+Write-Host "[OK] Image mounted successfully" -ForegroundColor Green
+[Console]::Out.Flush()
+
 # Resolve Image Info
+Write-Host "`n[INFO] Analyzing mounted image..." -ForegroundColor Cyan
+[Console]::Out.Flush()
 $WimDetails = Get-WimDetails -MountPath $installMountDir
 if (-not $WimDetails -or -not $WimDetails.BuildNumber -or -not $WimDetails.Language) {
-    Write-Host "Error: Could not retrieve WIM information from mounted path" -ForegroundColor Red
+    Write-Host "[FAILED] Error: Could not retrieve WIM information from mounted path" -ForegroundColor Red
+    [Console]::Out.Flush()
     Remove-TempFiles
     Pause
     Exit
 }
 $langCode = $WimDetails.Language; Write-Log -msg "Detected Language: $langCode"
 $buildNumber = $WimDetails.BuildNumber; Write-Log -msg "Detected Build Number: $buildNumber"
+Write-Host "  → Language: $langCode" -ForegroundColor Yellow
+Write-Host "  → Build Number: $buildNumber" -ForegroundColor Yellow
+[Console]::Out.Flush()
 
 Write-Host
 $DoAppxRemove = Get-ParameterValue -ParameterValue $AppxRemove -DefaultValue $true -Question "Remove unnecessary packages?" -Description "Recommended: Removes bloatware apps"
