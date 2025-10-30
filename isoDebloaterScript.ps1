@@ -324,7 +324,7 @@ function Get-AutoDetectedEdition {
     $priorityOrder = @("Pro", "Enterprise", "Home", "LTSC")
     
     # If preferred edition is specified, try to find it first
-    if ($PreferredEdition -and $PreferredEdition -ne "auto") {
+    if ($PreferredEdition -and $PreferredEdition -ne "Auto") {
         $preferredMatch = $ImageList | Where-Object { 
             $_.ImageName -match $PreferredEdition -or 
             $_.ImageName -like "*$PreferredEdition*" 
@@ -531,7 +531,7 @@ if (-not (Test-Path $installWimPath)) {
                 Write-Host "$($image.Index). $($image.ImageName)"
             }
             # Handle auto-detection or manual selection
-            if ($winEdition -ieq "auto") {
+            if ($winEdition -ieq "Auto") {
                 Write-Host "`nAuto-detecting Windows Edition..." -ForegroundColor Cyan
                 $detectedImage = Get-AutoDetectedEdition -ImageList $esdInfo
                 if ($detectedImage) {
