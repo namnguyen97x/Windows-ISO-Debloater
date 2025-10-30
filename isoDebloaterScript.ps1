@@ -813,8 +813,8 @@ $appxPatternsToRemove = @(
     # "Microsoft.WindowsNotepad*",               # Notepad (kept)
     "Microsoft.Windows.Photos*",               # Photos
     "Microsoft.ScreenSketch*",                 # Snipping Tool
-    "Microsoft.WindowsTerminal*",              # Windows Terminal
-    "Microsoft.WindowsTerminalPreview*",       # Windows Terminal Preview
+    # "Microsoft.WindowsTerminal*",              # Windows Terminal (kept)
+    # "Microsoft.WindowsTerminalPreview*",       # Windows Terminal Preview (kept)
     # "Microsoft.WindowsRemoteDesktop*",          # Remote Desktop (kept)
     "Microsoft.DesktopAppInstaller*",           # App Installer
     "Microsoft.WindowsWebExperiencePack*",      # Web Experience Pack
@@ -930,7 +930,7 @@ $capabilitiesToRemove = @(
     "Microsoft.Windows.WordPad*",
     "MathRecognizer*",
     "Media.WindowsMediaPlayer*",
-    "Microsoft.Windows.PowerShell.ISE*"
+    # "Microsoft.Windows.PowerShell.ISE*"       # PowerShell ISE (kept)
 )
 
 $windowsPackagesToRemove = @(
