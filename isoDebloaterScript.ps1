@@ -923,37 +923,63 @@ if ($DoEDGERemove) {
     }
 
     # Modifying reg keys
+    Write-Host "  → Modifying Edge registry..." -ForegroundColor Yellow
+    [Console]::Out.Flush()
     try {
         reg load HKLM\zSOFTWARE "$installMountDir\Windows\System32\config\SOFTWARE" 2>&1 | Write-Log
         reg load HKLM\zSYSTEM "$installMountDir\Windows\System32\config\SYSTEM" 2>&1 | Write-Log
         reg load HKLM\zNTUSER "$installMountDir\Users\Default\ntuser.dat" 2>&1 | Write-Log
         reg load HKLM\zDEFAULT "$installMountDir\Windows\System32\config\default" 2>&1 | Write-Log
           
-        # Registry operations
-        reg delete "HKLM\zSOFTWARE\Microsoft\EdgeUpdate" /f 2>&1 | Write-Log
-        reg delete "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Edge" /f 2>&1 | Write-Log
-        reg delete "HKLM\zDEFAULT\Software\Microsoft\EdgeUpdate" /f 2>&1 | Write-Log
-        reg delete "HKLM\zNTUSER\Software\Microsoft\EdgeUpdate" /f 2>&1 | Write-Log
-        reg delete "HKLM\zSOFTWARE\Microsoft\Active Setup\Installed Components\{9459C573-B17A-45AE-9F64-1857B5D58CEE}" /f 2>&1 | Write-Log
-        reg delete "HKLM\zSOFTWARE\WOW6432Node\Microsoft\Edge" /f 2>&1 | Write-Log
-        reg delete "HKLM\zSOFTWARE\WOW6432Node\Microsoft\EdgeUpdate" /f 2>&1 | Write-Log
-        reg delete "HKLM\zSYSTEM\CurrentControlSet\Services\edgeupdate" /f 2>&1 | Write-Log
-        reg delete "HKLM\zSYSTEM\ControlSet001\Services\edgeupdate" /f 2>&1 | Write-Log
-        reg delete "HKLM\zSYSTEM\CurrentControlSet\Services\edgeupdatem" /f 2>&1 | Write-Log
-        reg delete "HKLM\zSYSTEM\ControlSet001\Services\edgeupdatem" /f 2>&1 | Write-Log
-        reg delete "HKLM\zSOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Edge" /f 2>&1 | Write-Log
-        reg delete "HKLM\zSOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Edge Update" /f 2>&1 | Write-Log
-        reg add "HKLM\zSOFTWARE\Microsoft\MicrosoftEdge\Main" /v "AllowPrelaunch" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-        reg add "HKLM\zSOFTWARE\Policies\Microsoft\MicrosoftEdge\Main" /v "AllowPrelaunch" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-        reg add "HKLM\zNTUSER\Software\Microsoft\MicrosoftEdge\Main" /v "AllowPrelaunch" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-        reg add "HKLM\zNTUSER\Software\Policies\Microsoft\MicrosoftEdge\Main" /v "AllowPrelaunch" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-        reg add "HKLM\zSOFTWARE\Microsoft\MicrosoftEdge\TabPreloader" /v "AllowTabPreloading" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-        reg add "HKLM\zSOFTWARE\Policies\Microsoft\MicrosoftEdge\TabPreloader" /v "AllowTabPreloading" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-        reg add "HKLM\zNTUSER\Software\Microsoft\MicrosoftEdge\TabPreloader" /v "AllowTabPreloading" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-        reg add "HKLM\zNTUSER\Software\Policies\Microsoft\MicrosoftEdge\TabPreloader" /v "AllowTabPreloading" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-        reg add "HKLM\zSOFTWARE\Policies\Microsoft\EdgeUpdate" /v "UpdateDefault" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
+        # Registry operations - delete operations
+        $edgeDeleteRegistry = @(
+            "HKLM\zSOFTWARE\Microsoft\EdgeUpdate",
+            "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Edge",
+            "HKLM\zDEFAULT\Software\Microsoft\EdgeUpdate",
+            "HKLM\zNTUSER\Software\Microsoft\EdgeUpdate",
+            "HKLM\zSOFTWARE\Microsoft\Active Setup\Installed Components\{9459C573-B17A-45AE-9F64-1857B5D58CEE}",
+            "HKLM\zSOFTWARE\WOW6432Node\Microsoft\Edge",
+            "HKLM\zSOFTWARE\WOW6432Node\Microsoft\EdgeUpdate",
+            "HKLM\zSYSTEM\CurrentControlSet\Services\edgeupdate",
+            "HKLM\zSYSTEM\ControlSet001\Services\edgeupdate",
+            "HKLM\zSYSTEM\CurrentControlSet\Services\edgeupdatem",
+            "HKLM\zSYSTEM\ControlSet001\Services\edgeupdatem",
+            "HKLM\zSOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Edge",
+            "HKLM\zSOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Edge Update"
+        )
+        
+        foreach ($regKey in $edgeDeleteRegistry) {
+            Write-Host "    → Removing $regKey..." -ForegroundColor Cyan -NoNewline
+            [Console]::Out.Flush()
+            reg delete $regKey /f 2>&1 | Write-Log
+            Write-Host " [OK]" -ForegroundColor Green
+            [Console]::Out.Flush()
+        }
+        
+        # Registry operations - add operations
+        $edgeAddRegistry = @(
+            @{Key="HKLM\zSOFTWARE\Microsoft\MicrosoftEdge\Main"; Value="AllowPrelaunch"; Type="REG_DWORD"; Data="1"},
+            @{Key="HKLM\zSOFTWARE\Policies\Microsoft\MicrosoftEdge\Main"; Value="AllowPrelaunch"; Type="REG_DWORD"; Data="1"},
+            @{Key="HKLM\zNTUSER\Software\Microsoft\MicrosoftEdge\Main"; Value="AllowPrelaunch"; Type="REG_DWORD"; Data="1"},
+            @{Key="HKLM\zNTUSER\Software\Policies\Microsoft\MicrosoftEdge\Main"; Value="AllowPrelaunch"; Type="REG_DWORD"; Data="1"},
+            @{Key="HKLM\zSOFTWARE\Microsoft\MicrosoftEdge\TabPreloader"; Value="AllowTabPreloading"; Type="REG_DWORD"; Data="1"},
+            @{Key="HKLM\zSOFTWARE\Policies\Microsoft\MicrosoftEdge\TabPreloader"; Value="AllowTabPreloading"; Type="REG_DWORD"; Data="1"},
+            @{Key="HKLM\zNTUSER\Software\Microsoft\MicrosoftEdge\TabPreloader"; Value="AllowTabPreloading"; Type="REG_DWORD"; Data="1"},
+            @{Key="HKLM\zNTUSER\Software\Policies\Microsoft\MicrosoftEdge\TabPreloader"; Value="AllowTabPreloading"; Type="REG_DWORD"; Data="1"},
+            @{Key="HKLM\zSOFTWARE\Policies\Microsoft\EdgeUpdate"; Value="UpdateDefault"; Type="REG_DWORD"; Data="0"}
+        )
+        
+        foreach ($reg in $edgeAddRegistry) {
+            Write-Host "    → Modifying $($reg.Key)\$($reg.Value)..." -ForegroundColor Cyan -NoNewline
+            [Console]::Out.Flush()
+            reg add $reg.Key /v $reg.Value /t $reg.Type /d $reg.Data /f 2>&1 | Write-Log
+            Write-Host " [OK]" -ForegroundColor Green
+            [Console]::Out.Flush()
+        }
         
         # Disable Edge updates and installation
+        Write-Host "    → Disabling Edge updates and installation..." -ForegroundColor Cyan
+        [Console]::Out.Flush()
         $registryKeys = @(
             "HKLM\zSOFTWARE\Microsoft\EdgeUpdate",
             "HKLM\zSOFTWARE\Policies\Microsoft\EdgeUpdate",
@@ -962,9 +988,13 @@ if ($DoEDGERemove) {
             "HKLM\zNTUSER\Software\Policies\Microsoft\EdgeUpdate"
         )
         foreach ($key in $registryKeys) {
+            Write-Host "      → Modifying $key..." -ForegroundColor Cyan
+            [Console]::Out.Flush()
             reg add "$key" /v "DoNotUpdateToEdgeWithChromium" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
             reg add "$key" /v "UpdaterExperimentationAndConfigurationServiceControl" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
             reg add "$key" /v "InstallDefault" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
+            Write-Host "      → $key [OK]" -ForegroundColor Green
+            [Console]::Out.Flush()
         }
     }
     catch {
@@ -1068,34 +1098,43 @@ if ($DoAIRemove) {
     }
 
     # Modifying reg keys
+    Write-Host "  → Modifying AI registry..." -ForegroundColor Yellow
+    [Console]::Out.Flush()
     try {
         reg load HKLM\zSOFTWARE "$installMountDir\Windows\System32\config\SOFTWARE" 2>&1 | Write-Log
 
         # Registry operations
-        reg add "HKLM\zSOFTWARE\Policies\Microsoft\Windows\WindowsCopilot" /v "TurnOffWindowsCopilot" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-        reg add "HKLM\zSOFTWARE\Policies\Microsoft\Edge" /v "HubsSidebarEnabled" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-        reg add "HKLM\zSOFTWARE\Policies\Microsoft\Windows\Explorer" /v "DisableSearchBoxSuggestions" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-        # Disable AI in Notepad
-        reg add "HKLM\zSOFTWARE\Policies\WindowsNotepad" /v "DisableAIFeatures" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-        # Disable AI in Paint
-        reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Paint" /v "DisableCocreator" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-        reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Paint" /v "DisableImageCreator" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-        # Disable AI in other apps
-        reg add "HKLM\zSOFTWARE\Policies\Microsoft\Windows\AppPrivacy" /v "LetAppsAccessSystemAIModels" /t REG_DWORD /d "2" /f 2>&1 | Write-Log
-        reg add "HKLM\zSOFTWARE\Policies\Microsoft\Windows\AppPrivacy" /v "LetAppsAccessGenerativeAI" /t REG_DWORD /d "2" /f 2>&1 | Write-Log
-        # Disable AI access
-        reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\generativeAI" /v "Value" /t REG_SZ /d "Deny" /f 2>&1 | Write-Log
-        # Disable AI in Edge
-        reg add "HKLM\zSOFTWARE\Policies\Microsoft\Edge" /v "HubsSidebarEnabled" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-        reg add "HKLM\zSOFTWARE\Policies\Microsoft\Edge" /v "CopilotPageContext" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-        reg add "HKLM\zSOFTWARE\Policies\Microsoft\Edge" /v "CopilotCDPPageContext" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-        # Disable AI in Search
-        reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsAI" /v "DisableClickToDo" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
+        $aiRegistry = @(
+            @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Windows\WindowsCopilot"; Value="TurnOffWindowsCopilot"; Type="REG_DWORD"; Data="1"},
+            @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Edge"; Value="HubsSidebarEnabled"; Type="REG_DWORD"; Data="0"},
+            @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Windows\Explorer"; Value="DisableSearchBoxSuggestions"; Type="REG_DWORD"; Data="1"},
+            @{Key="HKLM\zSOFTWARE\Policies\WindowsNotepad"; Value="DisableAIFeatures"; Type="REG_DWORD"; Data="1"},
+            @{Key="HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Paint"; Value="DisableCocreator"; Type="REG_DWORD"; Data="1"},
+            @{Key="HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Paint"; Value="DisableImageCreator"; Type="REG_DWORD"; Data="1"},
+            @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Windows\AppPrivacy"; Value="LetAppsAccessSystemAIModels"; Type="REG_DWORD"; Data="2"},
+            @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Windows\AppPrivacy"; Value="LetAppsAccessGenerativeAI"; Type="REG_DWORD"; Data="2"},
+            @{Key="HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\generativeAI"; Value="Value"; Type="REG_SZ"; Data="Deny"},
+            @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Edge"; Value="CopilotPageContext"; Type="REG_DWORD"; Data="0"},
+            @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Edge"; Value="CopilotCDPPageContext"; Type="REG_DWORD"; Data="0"},
+            @{Key="HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsAI"; Value="DisableClickToDo"; Type="REG_DWORD"; Data="1"}
+        )
+        
+        foreach ($reg in $aiRegistry) {
+            Write-Host "    → Modifying $($reg.Key)\$($reg.Value)..." -ForegroundColor Cyan -NoNewline
+            [Console]::Out.Flush()
+            reg add $reg.Key /v $reg.Value /t $reg.Type /d $reg.Data /f 2>&1 | Write-Log
+            Write-Host " [OK]" -ForegroundColor Green
+            [Console]::Out.Flush()
+        }
 
         # Disable Recall on first logon
         if ($buildNumber -ge 22000) {
+            Write-Host "    → Disabling Recall..." -ForegroundColor Cyan -NoNewline
+            [Console]::Out.Flush()
             reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce" /v "DisableRecall" /t REG_SZ /d "dism.exe /online /disable-feature /FeatureName:recall" /f 2>&1 | Write-Log
             reg add "HKLM\zSOFTWARE\Policies\Microsoft\Windows\WindowsAI" /v "DisableAIDataAnalysis" /t REG_DWORD /d 1 /f 2>&1 | Write-Log
+            Write-Host " [OK]" -ForegroundColor Green
+            [Console]::Out.Flush()
         }
     }
     catch {
@@ -1258,112 +1297,192 @@ Set-Ownership -Registry @("zSOFTWARE\Microsoft\Windows\CurrentVersion\Communicat
 
 Write-Host ("[OK] Registry loaded") -ForegroundColor Green
 
+# Function to apply registry tweaks with real-time display
+function Apply-RegistryTweaks {
+    param (
+        [string]$SectionName,
+        [array]$RegistryOperations
+    )
+    
+    Write-Host "  → $SectionName..." -ForegroundColor Yellow
+    [Console]::Out.Flush()
+    
+    foreach ($op in $RegistryOperations) {
+        $displayKey = if ($op.Value) { "$($op.Key)\$($op.Value)" } else { $op.Key }
+        Write-Host "    → Modifying $displayKey..." -ForegroundColor Cyan -NoNewline
+        [Console]::Out.Flush()
+        
+        try {
+            if ($op.Type -eq "DELETE") {
+                reg delete $op.Key /f 2>&1 | Write-Log
+            } elseif ($op.Type -eq "CREATE") {
+                reg add $op.Key /f 2>&1 | Write-Log
+            } else {
+                reg add $op.Key /v $op.Value /t $op.Type /d $op.Data /f 2>&1 | Write-Log
+            }
+            Write-Host " [OK]" -ForegroundColor Green
+            [Console]::Out.Flush()
+        } catch {
+            Write-Host " [FAILED]" -ForegroundColor Red
+            [Console]::Out.Flush()
+            Write-Log -msg "Failed to modify registry: $displayKey - $_"
+        }
+    }
+    
+    Write-Host "  → $SectionName [DONE]" -ForegroundColor Green
+    [Console]::Out.Flush()
+}
+
 # Modify registry settings
 Write-Host ("`nPerforming Registry Tweaks...") -ForegroundColor Cyan
 
 # Disable Sponsored Apps
-Write-Host -NoNewline ("  Disabling Sponsored Apps".PadRight($statusColumn))
-reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "OemPreInstalledAppsEnabled" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-reg add "HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "PreInstalledAppsEnabled" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-reg add "HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "SilentInstalledAppsEnabled" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-reg add "HKLM\zSOFTWARE\Policies\Microsoft\Windows\CloudContent" /v "DisableWindowsConsumerFeatures" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-reg add "HKLM\zSOFTWARE\Microsoft\PolicyManager\current\device\Start" /v "ConfigureStartPins" /t REG_SZ /d '{\"pinnedList\": [{}]}' /f 2>&1 | Write-Log
-reg add "HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "SubscribedContentEnabled" /t REG_SZ /d "0" /f 2>&1 | Write-Log
-reg add "HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "SubscribedContentEnabled" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-reg add "HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "SubscribedContent-310093Enabled" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-reg add "HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "SubscribedContent-338388Enabled" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-reg add "HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "SubscribedContent-338389Enabled" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-reg add "HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "SubscribedContent-338393Enabled" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-reg add "HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "SubscribedContent-353694Enabled" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-reg add "HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "SubscribedContent-353696Enabled" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-reg add "HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "SubscribedContent-338387Enabled" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-reg add "HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "ContentDeliveryAllowed" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-reg add "HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "PreInstalledAppsEverEnabled" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-reg add "HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "SoftLandingEnabled" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-reg add "HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "SystemPaneSuggestionsEnabled" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-reg delete "HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\Subscriptions" /f 2>&1 | Write-Log
-reg delete "HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\SuggestedApps" /f 2>&1 | Write-Log
-Write-Host "[DONE]" -ForegroundColor Green
+$sponsoredAppsRegistry = @(
+    @{Key="HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"; Value="OemPreInstalledAppsEnabled"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"; Value="PreInstalledAppsEnabled"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"; Value="SilentInstalledAppsEnabled"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Windows\CloudContent"; Value="DisableWindowsConsumerFeatures"; Type="REG_DWORD"; Data="1"},
+    @{Key="HKLM\zSOFTWARE\Microsoft\PolicyManager\current\device\Start"; Value="ConfigureStartPins"; Type="REG_SZ"; Data='{\"pinnedList\": [{}]}'},
+    @{Key="HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"; Value="SubscribedContentEnabled"; Type="REG_SZ"; Data="0"},
+    @{Key="HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"; Value="SubscribedContentEnabled"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"; Value="SubscribedContent-310093Enabled"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"; Value="SubscribedContent-338388Enabled"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"; Value="SubscribedContent-338389Enabled"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"; Value="SubscribedContent-338393Enabled"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"; Value="SubscribedContent-353694Enabled"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"; Value="SubscribedContent-353696Enabled"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"; Value="SubscribedContent-338387Enabled"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"; Value="ContentDeliveryAllowed"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"; Value="PreInstalledAppsEverEnabled"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"; Value="SoftLandingEnabled"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"; Value="SystemPaneSuggestionsEnabled"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\Subscriptions"; Value=""; Type="DELETE"; Data=""},
+    @{Key="HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\SuggestedApps"; Value=""; Type="DELETE"; Data=""}
+)
+Apply-RegistryTweaks -SectionName "Disabling Sponsored Apps" -RegistryOperations $sponsoredAppsRegistry
 
 # Disable Telemetry
-Write-Host -NoNewline ("  Disabling Telemetry".PadRight($statusColumn))
-reg add "HKLM\zSOFTWARE\Policies\Microsoft\Windows\DataCollection" /v "AllowTelemetry" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-reg add "HKLM\zNTUSER\Software\Microsoft\Personalization\Settings" /v "AcceptedPrivacyPolicy" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-reg add "HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\Privacy" /v "TailoredExperiencesWithDiagnosticDataEnabled" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-reg add "HKLM\zNTUSER\Software\Microsoft\Speech_OneCore\Settings\OnlineSpeechPrivacy" /v "HasAccepted" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-reg add "HKLM\zNTUSER\Software\Microsoft\InputPersonalization" /v "RestrictImplicitInkCollection" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-reg add "HKLM\zNTUSER\Software\Microsoft\InputPersonalization" /v "RestrictImplicitTextCollection" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-reg add "HKLM\zNTUSER\Software\Microsoft\InputPersonalization\TrainedDataStore" /v "HarvestContacts" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-reg add "HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo" /v "Enabled" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-reg add "HKLM\zSYSTEM\ControlSet001\Services\dmwappushservice" /v "Start" /t REG_DWORD /d "4" /f 2>&1 | Write-Log
-Write-Host "[DONE]" -ForegroundColor Green
+$telemetryRegistry = @(
+    @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Windows\DataCollection"; Value="AllowTelemetry"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zNTUSER\Software\Microsoft\Personalization\Settings"; Value="AcceptedPrivacyPolicy"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\Privacy"; Value="TailoredExperiencesWithDiagnosticDataEnabled"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zNTUSER\Software\Microsoft\Speech_OneCore\Settings\OnlineSpeechPrivacy"; Value="HasAccepted"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zNTUSER\Software\Microsoft\InputPersonalization"; Value="RestrictImplicitInkCollection"; Type="REG_DWORD"; Data="1"},
+    @{Key="HKLM\zNTUSER\Software\Microsoft\InputPersonalization"; Value="RestrictImplicitTextCollection"; Type="REG_DWORD"; Data="1"},
+    @{Key="HKLM\zNTUSER\Software\Microsoft\InputPersonalization\TrainedDataStore"; Value="HarvestContacts"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo"; Value="Enabled"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zSYSTEM\ControlSet001\Services\dmwappushservice"; Value="Start"; Type="REG_DWORD"; Data="4"}
+)
+Apply-RegistryTweaks -SectionName "Disabling Telemetry" -RegistryOperations $telemetryRegistry
 
 # Disable Mouse Acceleration
-Write-Host -NoNewline ("  Disabling Mouse Acceleration".PadRight($statusColumn))
-reg add "HKLM\zNTUSER\Control Panel\Mouse" /v "MouseSpeed" /t REG_SZ /d "0" /f 2>&1 | Write-Log
-reg add "HKLM\zNTUSER\Control Panel\Mouse" /v "MouseThreshold1" /t REG_SZ /d "0" /f 2>&1 | Write-Log
-reg add "HKLM\zNTUSER\Control Panel\Mouse" /v "MouseThreshold2" /t REG_SZ /d "0" /f 2>&1 | Write-Log
-Write-Host "[DONE]" -ForegroundColor Green
+$mouseAccelRegistry = @(
+    @{Key="HKLM\zNTUSER\Control Panel\Mouse"; Value="MouseSpeed"; Type="REG_SZ"; Data="0"},
+    @{Key="HKLM\zNTUSER\Control Panel\Mouse"; Value="MouseThreshold1"; Type="REG_SZ"; Data="0"},
+    @{Key="HKLM\zNTUSER\Control Panel\Mouse"; Value="MouseThreshold2"; Type="REG_SZ"; Data="0"}
+)
+Apply-RegistryTweaks -SectionName "Disabling Mouse Acceleration" -RegistryOperations $mouseAccelRegistry
 
 # Disable Meet Now icon
-Write-Host -NoNewline ("  Disabling Meet".PadRight($statusColumn))
-reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "HideSCAMeetNow" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "AllowOnlineTips" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-Write-Host "[DONE]" -ForegroundColor Green
+$meetNowRegistry = @(
+    @{Key="HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer"; Value="HideSCAMeetNow"; Type="REG_DWORD"; Data="1"},
+    @{Key="HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer"; Value="AllowOnlineTips"; Type="REG_DWORD"; Data="0"}
+)
+Apply-RegistryTweaks -SectionName "Disabling Meet Now" -RegistryOperations $meetNowRegistry
 
 # Disable Ads and Stuffs
-Write-Host -NoNewline ("  Disabling Ads and Stuffs".PadRight($statusColumn))
-# Disable ad tailoring
-reg add "HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo" /v "Enabled" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-# Disable cloud-based content
-reg add "HKLM\zSOFTWARE\Policies\Microsoft\Windows\CloudContent" /v "DisableConsumerAccountStateContent" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-reg add "HKLM\zSOFTWARE\Policies\Microsoft\Windows\CloudContent" /v "DisableCloudOptimizedContent" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-# Disable Start Menu Suggestions
-reg add "HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "Start_IrisRecommendations" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-# Disable News and Interest
-reg add "HKLM\zSOFTWARE\Policies\Microsoft\Windows\Windows Feeds" /v "EnableFeeds" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-# Remove Spotlight icon from Desktop
-reg add "HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel" /v "{2cc5ca98-6485-489a-920e-b3e88a6ccce3}" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-# Disable Cortana
-reg add "HKLM\zSOFTWARE\Policies\Microsoft\Windows\Windows Search" /v "AllowCortana" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-# Changes MenuShowDelay from 400 to 200
-reg add "HKLM\zNTUSER\Control Panel\Desktop" /v "MenuShowDelay" /t REG_SZ /d "200" /f 2>&1 | Write-Log
-# Disable everytime MRT download through Win Update
-reg add "HKLM\zSOFTWARE\Policies\Microsoft\MRT" /v "DontOfferThroughWUAU" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-# Disable Teams Auto installation
-reg add "HKLM\zSOFTWARE\Policies\Microsoft\Teams" /v "DisableInstallation" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-# Disable Outlook
-reg add "HKLM\zSOFTWARE\Policies\Microsoft\Windows\Windows Mail" /v "PreventRun" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-Write-Host "[DONE]" -ForegroundColor Green
+$adsRegistry = @(
+    @{Key="HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo"; Value="Enabled"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Windows\CloudContent"; Value="DisableConsumerAccountStateContent"; Type="REG_DWORD"; Data="1"},
+    @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Windows\CloudContent"; Value="DisableCloudOptimizedContent"; Type="REG_DWORD"; Data="1"},
+    @{Key="HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"; Value="Start_IrisRecommendations"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Windows\Windows Feeds"; Value="EnableFeeds"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel"; Value="{2cc5ca98-6485-489a-920e-b3e88a6ccce3}"; Type="REG_DWORD"; Data="1"},
+    @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Windows\Windows Search"; Value="AllowCortana"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zNTUSER\Control Panel\Desktop"; Value="MenuShowDelay"; Type="REG_SZ"; Data="200"},
+    @{Key="HKLM\zSOFTWARE\Policies\Microsoft\MRT"; Value="DontOfferThroughWUAU"; Type="REG_DWORD"; Data="1"},
+    @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Teams"; Value="DisableInstallation"; Type="REG_DWORD"; Data="1"},
+    @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Windows\Windows Mail"; Value="PreventRun"; Type="REG_DWORD"; Data="1"}
+)
+Apply-RegistryTweaks -SectionName "Disabling Ads and Stuffs" -RegistryOperations $adsRegistry
 
 # Disable Bitlocker
-Write-Host -NoNewline ("  Disabling Bitlocker Encryption".PadRight($statusColumn))
-reg add "HKLM\zSYSTEM\ControlSet001\Control\BitLocker" /v "PreventDeviceEncryption" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-Write-Host "[DONE]" -ForegroundColor Green
+$bitlockerRegistry = @(
+    @{Key="HKLM\zSYSTEM\ControlSet001\Control\BitLocker"; Value="PreventDeviceEncryption"; Type="REG_DWORD"; Data="1"}
+)
+Apply-RegistryTweaks -SectionName "Disabling Bitlocker Encryption" -RegistryOperations $bitlockerRegistry
+
+# Disable VBS (Virtualization-Based Security)
+Write-Host "  → Disabling VBS (Virtualization-Based Security)..." -ForegroundColor Yellow
+[Console]::Out.Flush()
+$vbsRegistry = @(
+    # DeviceGuard Control Settings
+    @{Key="HKLM\zSYSTEM\CurrentControlSet\Control\DeviceGuard"; Value="EnableVirtualizationBasedSecurity"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zSYSTEM\CurrentControlSet\Control\DeviceGuard"; Value="RequirePlatformSecurityFeatures"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zSYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity"; Value="Enabled"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zSYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity"; Value="WasEnabledByGroupPolicy"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zSYSTEM\ControlSet001\Control\DeviceGuard"; Value="EnableVirtualizationBasedSecurity"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zSYSTEM\ControlSet001\Control\DeviceGuard"; Value="RequirePlatformSecurityFeatures"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zSYSTEM\ControlSet001\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity"; Value="Enabled"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zSYSTEM\ControlSet001\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity"; Value="WasEnabledByGroupPolicy"; Type="REG_DWORD"; Data="0"},
+    # Group Policy DeviceGuard Settings
+    @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Windows\DeviceGuard"; Value="EnableVirtualizationBasedSecurity"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Windows\DeviceGuard"; Value="RequirePlatformSecurityFeatures"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Windows\DeviceGuard"; Value="TurnOnVirtualizationBasedSecurity"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Windows\DeviceGuard"; Value="Locked"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Windows\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity"; Value="Enabled"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Windows\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity"; Value="Locked"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity"; Value="Enabled"; Type="REG_DWORD"; Data="0"},
+    # LSA Configuration
+    @{Key="HKLM\zSYSTEM\CurrentControlSet\Control\Lsa"; Value="LsaCfgFlags"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zSYSTEM\ControlSet001\Control\Lsa"; Value="LsaCfgFlags"; Type="REG_DWORD"; Data="0"},
+    # Group Policy LSA Settings
+    @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Windows\DeviceGuard"; Value="ConfigureSystemGuardLaunch"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Windows\DeviceGuard"; Value="RequireMicrosoftSignedBootChain"; Type="REG_DWORD"; Data="0"}
+)
+
+foreach ($reg in $vbsRegistry) {
+    Write-Host "    → Modifying $($reg.Key)\$($reg.Value)..." -ForegroundColor Cyan -NoNewline
+    [Console]::Out.Flush()
+    try {
+        reg add $reg.Key /v $reg.Value /t $reg.Type /d $reg.Data /f 2>&1 | Write-Log
+        Write-Host " [OK]" -ForegroundColor Green
+        [Console]::Out.Flush()
+    } catch {
+        Write-Host " [SKIPPED]" -ForegroundColor Yellow
+        [Console]::Out.Flush()
+        Write-Log -msg "VBS registry key may not exist: $($reg.Key)\$($reg.Value)"
+    }
+}
+Write-Host "  → Disabling VBS (Virtualization-Based Security) [DONE]" -ForegroundColor Green
+[Console]::Out.Flush()
 
 # Disable OneDrive Stuffs
-Write-Host -NoNewline ("  Removing OneDrive Junks".PadRight($statusColumn))
-reg delete "HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\Run" /v "OneDriveSetup" /f 2>&1 | Write-Log
-reg add "HKLM\zSOFTWARE\Policies\Microsoft\Windows\OneDrive" /v "DisableLibrariesDefaultSaveToOneDrive" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-reg add "HKLM\zSOFTWARE\Policies\Microsoft\Windows\OneDrive" /v "DisableFileSyncNGSC" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-reg add "HKLM\zSOFTWARE\Policies\Microsoft\OneDrive" /v "KFMBlockOptIn" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-Write-Host "[DONE]" -ForegroundColor Green
+$oneDriveStuffsRegistry = @(
+    @{Key="HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\Run"; Value="OneDriveSetup"; Type="DELETE"; Data=""},
+    @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Windows\OneDrive"; Value="DisableLibrariesDefaultSaveToOneDrive"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Windows\OneDrive"; Value="DisableFileSyncNGSC"; Type="REG_DWORD"; Data="1"},
+    @{Key="HKLM\zSOFTWARE\Policies\Microsoft\OneDrive"; Value="KFMBlockOptIn"; Type="REG_DWORD"; Data="1"}
+)
+Apply-RegistryTweaks -SectionName "Removing OneDrive Junks" -RegistryOperations $oneDriveStuffsRegistry
 
 # Disable GameDVR
-Write-Host -NoNewline ("  Disabling GameDVR and Components".PadRight($statusColumn))
-reg add "HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\GameDVR" /v "AppCaptureEnabled" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-reg add "HKLM\zNTUSER\System\GameConfigStore" /v "GameDVR_Enabled" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-reg add "HKLM\zSOFTWARE\Policies\Microsoft\Windows\GameDVR" /v "AllowGameDVR" /t REG_DWORD /d 0 /f 2>&1 | Write-Log
-reg add "HKLM\zSYSTEM\ControlSet001\Services\BcastDVRUserService" /v "Start" /t REG_DWORD /d 4 /f 2>&1 | Write-Log
-reg add "HKLM\zSYSTEM\ControlSet001\Services\GameBarPresenceWriter" /v "Start" /t REG_DWORD /d 4 /f 2>&1 | Write-Log
-Write-Host "[DONE]" -ForegroundColor Green
+$gameDVRRegistry = @(
+    @{Key="HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\GameDVR"; Value="AppCaptureEnabled"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zNTUSER\System\GameConfigStore"; Value="GameDVR_Enabled"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Windows\GameDVR"; Value="AllowGameDVR"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zSYSTEM\ControlSet001\Services\BcastDVRUserService"; Value="Start"; Type="REG_DWORD"; Data="4"},
+    @{Key="HKLM\zSYSTEM\ControlSet001\Services\GameBarPresenceWriter"; Value="Start"; Type="REG_DWORD"; Data="4"}
+)
+Apply-RegistryTweaks -SectionName "Disabling GameDVR and Components" -RegistryOperations $gameDVRRegistry
 
 # Remove Gamebar Popup
 # Courtesy: https://pastebin.com/EAABLssA by aveyo
-Write-Host -NoNewline ("  Removing Gamebar Popup".PadRight($statusColumn))
-reg add "HKLM\zNTUSER\Software\Microsoft\GameBar" /v "AutoGameModeEnabled" /t REG_DWORD /d 0 /f 2>&1 | Write-Log
+$gamebarPopupRegistry = @(
+    @{Key="HKLM\zNTUSER\Software\Microsoft\GameBar"; Value="AutoGameModeEnabled"; Type="REG_DWORD"; Data="0"}
+)
+Apply-RegistryTweaks -SectionName "Removing Gamebar Popup" -RegistryOperations $gamebarPopupRegistry
 # Rest added as post install script. Somehow, implementing it directly on the image was causing corruption
-Write-Host "[DONE]" -ForegroundColor Green
 
 # # Configure GameBarFTServer (NA)
 # $packageKey = "HKLM\zSOFTWARE\Classes\PackagedCom\ClassIndex\{FD06603A-2BDF-4BB1-B7DF-5DC68F353601}"
@@ -1371,139 +1490,288 @@ Write-Host "[DONE]" -ForegroundColor Green
 # reg add "HKLM\zSOFTWARE\Classes\PackagedCom\Package\$app\Server\0" /v "Executable" /t REG_SZ /d "systray.exe" /f 2>&1 | Write-Log
 
 # Enabling Local Account Creation
-Write-Host -NoNewline ("  Tweaking OOBE Settings".PadRight($statusColumn))
-reg add "HKLM\zSOFTWARE\Policies\Microsoft\Windows\OOBE" /v "DisablePrivacyExperience" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\OOBE" /v "BypassNRO" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\OOBE" /v "BypassNROGatherOptions" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
+$oobeRegistry = @(
+    @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Windows\OOBE"; Value="DisablePrivacyExperience"; Type="REG_DWORD"; Data="1"},
+    @{Key="HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\OOBE"; Value="BypassNRO"; Type="REG_DWORD"; Data="1"},
+    @{Key="HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\OOBE"; Value="BypassNROGatherOptions"; Type="REG_DWORD"; Data="1"}
+)
+Apply-RegistryTweaks -SectionName "Tweaking OOBE Settings" -RegistryOperations $oobeRegistry
 
 # Check if Autounattend.xml exists before copying
+Write-Host "  → Copying Autounattend.xml..." -ForegroundColor Yellow -NoNewline
+[Console]::Out.Flush()
 if (Test-Path -Path $autounattendXmlPath) {
     Write-Log -msg "Copying Autounattend.xml"
     Copy-Item -Path $autounattendXmlPath -Destination $destinationPath -Force
+    Write-Host " [OK]" -ForegroundColor Green
+    [Console]::Out.Flush()
 } else {
+    Write-Host " [NOT FOUND]" -ForegroundColor Yellow
+    [Console]::Out.Flush()
     Write-Warning "Autounattend.xml not found at $autounattendXmlPath"
     Write-Log -msg "Warning: Autounattend.xml not found at $autounattendXmlPath"
 }
-Write-Host "[DONE]" -ForegroundColor Green
 
 # Prevents Dev Home Installation
-Write-Host -NoNewline ("  Disabling useless junks".PadRight($statusColumn))
-reg delete "HKLM\zSOFTWARE\Microsoft\WindowsUpdate\Orchestrator\UScheduler_Oobe\DevHomeUpdate" /f 2>&1 | Write-Log
-reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Orchestrator\UScheduler\DevHomeUpdate" /v "workCompleted" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-
-# Prevents New Outlook for Windows Installation
-reg delete "HKLM\zSOFTWARE\Microsoft\WindowsUpdate\Orchestrator\UScheduler_Oobe\OutlookUpdate" /f 2>&1 | Write-Log
-reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Orchestrator\UScheduler\OutlookUpdate" /v "workCompleted" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-
-# Prevents Chat Auto Installation
-reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Communications" /v "ConfigureChatAutoInstall" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-reg add "HKLM\zSOFTWARE\Policies\Microsoft\Windows\Windows Chat" /v "ChatIcon" /t REG_DWORD /d "3" /f 2>&1 | Write-Log
-Write-Host "[DONE]" -ForegroundColor Green
+$uselessJunksRegistry = @(
+    @{Key="HKLM\zSOFTWARE\Microsoft\WindowsUpdate\Orchestrator\UScheduler_Oobe\DevHomeUpdate"; Value=""; Type="DELETE"; Data=""},
+    @{Key="HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Orchestrator\UScheduler\DevHomeUpdate"; Value="workCompleted"; Type="REG_DWORD"; Data="1"},
+    @{Key="HKLM\zSOFTWARE\Microsoft\WindowsUpdate\Orchestrator\UScheduler_Oobe\OutlookUpdate"; Value=""; Type="DELETE"; Data=""},
+    @{Key="HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Orchestrator\UScheduler\OutlookUpdate"; Value="workCompleted"; Type="REG_DWORD"; Data="1"},
+    @{Key="HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Communications"; Value="ConfigureChatAutoInstall"; Type="REG_DWORD"; Data="0"},
+    @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Windows\Windows Chat"; Value="ChatIcon"; Type="REG_DWORD"; Data="3"}
+)
+Apply-RegistryTweaks -SectionName "Disabling useless junks" -RegistryOperations $uselessJunksRegistry
 
 # Disable Scheduled Tasks
-Write-Host -NoNewline ("  Disabling Scheduled Tasks".PadRight($statusColumn))
-$win24H2 = (Get-ItemProperty -Path 'Registry::HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name DisplayVersion).DisplayVersion -eq '24H2'
+Write-Host "  → Disabling Scheduled Tasks..." -ForegroundColor Yellow
+[Console]::Out.Flush()
+$win24H2 = (Get-ItemProperty -Path 'Registry::HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name DisplayVersion -ErrorAction SilentlyContinue).DisplayVersion -eq '24H2'
+
 if ($win24H2) {
     # Customer Experience Improvement Program
-    reg delete "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks\{780E487D-C62F-4B55-AF84-0E38116AFE07}" /f 2>&1 | Write-Log
-    reg delete "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks\{FD607F42-4541-418A-B812-05C32EBA8626}" /f 2>&1 | Write-Log
-    reg delete "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks\{E4FED5BC-D567-4044-9642-2EDADF7DE108}" /f 2>&1 | Write-Log
+    Write-Host "    → Removing Customer Experience Improvement Program tasks..." -ForegroundColor Cyan
+    [Console]::Out.Flush()
+    $ceipTasks = @(
+        "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks\{780E487D-C62F-4B55-AF84-0E38116AFE07}",
+        "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks\{FD607F42-4541-418A-B812-05C32EBA8626}",
+        "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks\{E4FED5BC-D567-4044-9642-2EDADF7DE108}"
+    )
+    foreach ($task in $ceipTasks) {
+        Write-Host "      → Removing $task..." -ForegroundColor Cyan -NoNewline
+        [Console]::Out.Flush()
+        reg delete $task /f 2>&1 | Write-Log
+        Write-Host " [OK]" -ForegroundColor Green
+        [Console]::Out.Flush()
+    }
+    Write-Host "      → Removing CEIP task folder..." -ForegroundColor Cyan -NoNewline
+    [Console]::Out.Flush()
     Set-OwnAndRemove -Path "$installMountDir\Windows\System32\Tasks\Microsoft\Windows\Customer Experience Improvement Program" | Out-Null
+    Write-Host " [OK]" -ForegroundColor Green
+    [Console]::Out.Flush()
+    
     # Program Data Updater
+    Write-Host "    → Removing Program Data Updater..." -ForegroundColor Cyan -NoNewline
+    [Console]::Out.Flush()
     reg delete "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks\{E292525C-72F1-482C-8F35-C513FAA98DAE}" /f 2>&1 | Write-Log
     Set-OwnAndRemove -Path "$installMountDir\Windows\System32\Tasks\Microsoft\Windows\Application Experience\ProgramDataUpdater" | Out-Null
+    Write-Host " [OK]" -ForegroundColor Green
+    [Console]::Out.Flush()
+    
     # Application Compatibility Appraiser
-    reg delete "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks\{3047C197-66F1-4523-BA92-6C955FEF9E4E}" /f 2>&1 | Write-Log
-    reg delete "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks\{A0C71CB8-E8F0-498A-901D-4EDA09E07FF4}" /f 2>&1 | Write-Log
+    Write-Host "    → Removing Compatibility Appraiser tasks..." -ForegroundColor Cyan
+    [Console]::Out.Flush()
+    $appraiserTasks = @(
+        "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks\{3047C197-66F1-4523-BA92-6C955FEF9E4E}",
+        "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks\{A0C71CB8-E8F0-498A-901D-4EDA09E07FF4}"
+    )
+    foreach ($task in $appraiserTasks) {
+        Write-Host "      → Removing $task..." -ForegroundColor Cyan -NoNewline
+        [Console]::Out.Flush()
+        reg delete $task /f 2>&1 | Write-Log
+        Write-Host " [OK]" -ForegroundColor Green
+        [Console]::Out.Flush()
+    }
+    Write-Host "      → Removing Compatibility Appraiser task folder..." -ForegroundColor Cyan -NoNewline
+    [Console]::Out.Flush()
     Set-OwnAndRemove -Path "$installMountDir\Windows\System32\Tasks\Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser" | Out-Null
+    Write-Host " [OK]" -ForegroundColor Green
+    [Console]::Out.Flush()
 }
 else {
     # Customer Experience Improvement Program
-    reg delete "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks\{4738DE7A-BCC1-4E2D-B1B0-CADB044BFA81}" /f 2>&1 | Write-Log
-    reg delete "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks\{6FAC31FA-4A85-4E64-BFD5-2154FF4594B3}" /f 2>&1 | Write-Log
-    reg delete "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks\{FC931F16-B50A-472E-B061-B6F79A71EF59}" /f 2>&1 | Write-Log
+    Write-Host "    → Removing Customer Experience Improvement Program tasks..." -ForegroundColor Cyan
+    [Console]::Out.Flush()
+    $ceipTasks = @(
+        "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks\{4738DE7A-BCC1-4E2D-B1B0-CADB044BFA81}",
+        "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks\{6FAC31FA-4A85-4E64-BFD5-2154FF4594B3}",
+        "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks\{FC931F16-B50A-472E-B061-B6F79A71EF59}"
+    )
+    foreach ($task in $ceipTasks) {
+        Write-Host "      → Removing $task..." -ForegroundColor Cyan -NoNewline
+        [Console]::Out.Flush()
+        reg delete $task /f 2>&1 | Write-Log
+        Write-Host " [OK]" -ForegroundColor Green
+        [Console]::Out.Flush()
+    }
+    Write-Host "      → Removing CEIP task folder..." -ForegroundColor Cyan -NoNewline
+    [Console]::Out.Flush()
     Set-OwnAndRemove -Path "$installMountDir\Windows\System32\Tasks\Microsoft\Windows\Customer Experience Improvement Program" | Out-Null
+    Write-Host " [OK]" -ForegroundColor Green
+    [Console]::Out.Flush()
+    
     # Program Data Updater
+    Write-Host "    → Removing Program Data Updater..." -ForegroundColor Cyan -NoNewline
+    [Console]::Out.Flush()
     reg delete "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks\{0671EB05-7D95-4153-A32B-1426B9FE61DB}" /f 2>&1 | Write-Log
     Set-OwnAndRemove -Path "$installMountDir\Windows\System32\Tasks\Microsoft\Windows\Application Experience\ProgramDataUpdater" | Out-Null
+    Write-Host " [OK]" -ForegroundColor Green
+    [Console]::Out.Flush()
+    
     # Application Compatibility Appraiser
+    Write-Host "    → Removing Compatibility Appraiser..." -ForegroundColor Cyan -NoNewline
+    [Console]::Out.Flush()
     reg delete "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks\{0600DD45-FAF2-4131-A006-0B17509B9F78}" /f 2>&1 | Write-Log
     Set-OwnAndRemove -Path "$installMountDir\Windows\System32\Tasks\Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser" | Out-Null
+    Write-Host " [OK]" -ForegroundColor Green
+    [Console]::Out.Flush()
 }
-reg delete "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree\Microsoft\Windows\Application Experience\PcaPatchDbTask" /f 2>&1 | Write-Log
-reg delete "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree\Microsoft\Windows\Application Experience\MareBackup" /f 2>&1 | Write-Log
-reg delete "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree\Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser" /f 2>&1 | Write-Log
-reg delete "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree\Microsoft\Windows\Autochk\Proxy" /f 2>&1 | Write-Log
-reg delete "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree\Microsoft\Windows\Customer Experience Improvement Program\Consolidator" /f 2>&1 | Write-Log
-reg delete "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree\Microsoft\Windows\Customer Experience Improvement Program\UsbCeip" /f 2>&1 | Write-Log
-Write-Host "[DONE]" -ForegroundColor Green
+
+# Common scheduled tasks registry entries
+Write-Host "    → Removing common scheduled task registry entries..." -ForegroundColor Cyan
+[Console]::Out.Flush()
+$commonTasks = @(
+    "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree\Microsoft\Windows\Application Experience\PcaPatchDbTask",
+    "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree\Microsoft\Windows\Application Experience\MareBackup",
+    "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree\Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser",
+    "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree\Microsoft\Windows\Autochk\Proxy",
+    "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree\Microsoft\Windows\Customer Experience Improvement Program\Consolidator",
+    "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree\Microsoft\Windows\Customer Experience Improvement Program\UsbCeip"
+)
+foreach ($task in $commonTasks) {
+    Write-Host "      → Removing $task..." -ForegroundColor Cyan -NoNewline
+    [Console]::Out.Flush()
+    reg delete $task /f 2>&1 | Write-Log
+    Write-Host " [OK]" -ForegroundColor Green
+    [Console]::Out.Flush()
+}
+Write-Host "  → Disabling Scheduled Tasks [DONE]" -ForegroundColor Green
+[Console]::Out.Flush()
 
 # Disable TPM CHeck
 if ($DoTPMBypass) {
     Write-Host ("`n[INFO] Disabling TPM Check...") -ForegroundColor Cyan
     Write-Log -msg "Disabling TPM Check"
-    reg add "HKLM\zSYSTEM\Setup\LabConfig" /v "BypassTPMCheck" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-    reg add "HKLM\zSYSTEM\Setup\LabConfig" /v "BypassSecureBootCheck" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-    reg add "HKLM\zSYSTEM\Setup\LabConfig" /v "BypassStorageCheck" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-    reg add "HKLM\zSYSTEM\Setup\LabConfig" /v "BypassCPUCheck" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-    reg add "HKLM\zSYSTEM\Setup\LabConfig" /v "BypassRAMCheck" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-    reg add "HKLM\zSYSTEM\Setup\LabConfig" /v "BypassDiskCheck" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-    reg add "HKLM\zSYSTEM\Setup\MoSetup" /v "AllowUpgradesWithUnsupportedTPMOrCPU" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
+    
+    Write-Host "  → Modifying TPM bypass registry..." -ForegroundColor Yellow
+    [Console]::Out.Flush()
+    $tpmRegistry = @(
+        @{Key="HKLM\zSYSTEM\Setup\LabConfig"; Value="BypassTPMCheck"; Type="REG_DWORD"; Data="1"},
+        @{Key="HKLM\zSYSTEM\Setup\LabConfig"; Value="BypassSecureBootCheck"; Type="REG_DWORD"; Data="1"},
+        @{Key="HKLM\zSYSTEM\Setup\LabConfig"; Value="BypassStorageCheck"; Type="REG_DWORD"; Data="1"},
+        @{Key="HKLM\zSYSTEM\Setup\LabConfig"; Value="BypassCPUCheck"; Type="REG_DWORD"; Data="1"},
+        @{Key="HKLM\zSYSTEM\Setup\LabConfig"; Value="BypassRAMCheck"; Type="REG_DWORD"; Data="1"},
+        @{Key="HKLM\zSYSTEM\Setup\LabConfig"; Value="BypassDiskCheck"; Type="REG_DWORD"; Data="1"},
+        @{Key="HKLM\zSYSTEM\Setup\MoSetup"; Value="AllowUpgradesWithUnsupportedTPMOrCPU"; Type="REG_DWORD"; Data="1"}
+    )
+    
+    foreach ($reg in $tpmRegistry) {
+        Write-Host "    → Modifying $($reg.Key)\$($reg.Value)..." -ForegroundColor Cyan -NoNewline
+        [Console]::Out.Flush()
+        reg add $reg.Key /v $reg.Value /t $reg.Type /d $reg.Data /f 2>&1 | Write-Log
+        Write-Host " [OK]" -ForegroundColor Green
+        [Console]::Out.Flush()
+    }
     
     # Disable Unsupported Hardware Watermark
-    reg add "HKLM\zDEFAULT\Control Panel\UnsupportedHardwareNotificationCache" /v "SV1" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-    reg add "HKLM\zDEFAULT\Control Panel\UnsupportedHardwareNotificationCache" /v "SV2" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-    reg add "HKLM\zNTUSER\Control Panel\UnsupportedHardwareNotificationCache" /v "SV1" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-    reg add "HKLM\zNTUSER\Control Panel\UnsupportedHardwareNotificationCache" /v "SV2" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-    reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "HideUnsupportedHardwareNotifications" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
+    Write-Host "  → Disabling Unsupported Hardware Watermark..." -ForegroundColor Yellow
+    [Console]::Out.Flush()
+    $watermarkRegistry = @(
+        @{Key="HKLM\zDEFAULT\Control Panel\UnsupportedHardwareNotificationCache"; Value="SV1"; Type="REG_DWORD"; Data="0"},
+        @{Key="HKLM\zDEFAULT\Control Panel\UnsupportedHardwareNotificationCache"; Value="SV2"; Type="REG_DWORD"; Data="0"},
+        @{Key="HKLM\zNTUSER\Control Panel\UnsupportedHardwareNotificationCache"; Value="SV1"; Type="REG_DWORD"; Data="0"},
+        @{Key="HKLM\zNTUSER\Control Panel\UnsupportedHardwareNotificationCache"; Value="SV2"; Type="REG_DWORD"; Data="0"},
+        @{Key="HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"; Value="HideUnsupportedHardwareNotifications"; Type="REG_DWORD"; Data="1"}
+    )
+    
+    foreach ($reg in $watermarkRegistry) {
+        Write-Host "    → Modifying $($reg.Key)\$($reg.Value)..." -ForegroundColor Cyan -NoNewline
+        [Console]::Out.Flush()
+        reg add $reg.Key /v $reg.Value /t $reg.Type /d $reg.Data /f 2>&1 | Write-Log
+        Write-Host " [OK]" -ForegroundColor Green
+        [Console]::Out.Flush()
+    }
+    
     # Clear upgrade failure records
-    reg delete "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\CompatMarkers" /f 2>&1 | Write-Log
-    reg delete "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Shared" /f 2>&1 | Write-Log
-    reg delete "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\TargetVersionUpgradeExperienceIndicators" /f 2>&1 | Write-Log
+    Write-Host "  → Clearing upgrade failure records..." -ForegroundColor Yellow
+    [Console]::Out.Flush()
+    $upgradeRecords = @(
+        "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\CompatMarkers",
+        "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Shared",
+        "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\TargetVersionUpgradeExperienceIndicators"
+    )
+    
+    foreach ($record in $upgradeRecords) {
+        Write-Host "    → Removing $record..." -ForegroundColor Cyan -NoNewline
+        [Console]::Out.Flush()
+        reg delete $record /f 2>&1 | Write-Log
+        Write-Host " [OK]" -ForegroundColor Green
+        [Console]::Out.Flush()
+    }
+    
     # Simulate meeting requirements
+    Write-Host "  → Simulating meeting requirements..." -ForegroundColor Yellow -NoNewline
+    [Console]::Out.Flush()
     reg add "HKLM\zSOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\HwReqChk" /v "HwReqChkVars" /t REG_MULTI_SZ /d "SQ_SecureBootCapable=TRUE\0SQ_SecureBootEnabled=TRUE\0SQ_TpmVersion=2\0SQ_RamMB=8192" /f 2>&1 | Write-Log
-    # Set Upgrade Eligibility
     reg add "HKLM\zNTUSER\Software\Microsoft\PCHC" /v "UpgradeEligibility" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
+    Write-Host " [OK]" -ForegroundColor Green
+    [Console]::Out.Flush()
 
     # Remove appraiserres.dll and replace with blank file
+    Write-Host "  → Removing appraiserres.dll..." -ForegroundColor Yellow -NoNewline
+    [Console]::Out.Flush()
     $apprdllPath = Join-Path -Path $destinationPath -ChildPath "sources\appraiserres.dll"
     Set-OwnAndRemove -Path "$apprdllPath" | Out-Null
     New-Item -Path $apprdllPath -ItemType File -Force 2>&1 | Write-Log
+    Write-Host " [OK]" -ForegroundColor Green
+    [Console]::Out.Flush()
     try {
         $ProgressPreference = 'SilentlyContinue'
+        Write-Host "  → Mounting boot.wim for TPM bypass..." -ForegroundColor Yellow -NoNewline
+        [Console]::Out.Flush()
         $bootWimPath = Join-Path $destinationPath "sources\boot.wim"
         $bootMountDir = "$env:SystemDrive\WIDTemp\mountdir\bootWIM"
         New-Item -ItemType Directory -Path $bootMountDir 2>&1 | Write-Log
         Invoke-DismFailsafe {Mount-WindowsImage -ImagePath $bootWimPath -Index 2 -Path $bootMountDir}{ {dism /mount-image /imagefile:$bootWimPath /index:2 /mountdir:$bootMountDir}}
+        Write-Host " [OK]" -ForegroundColor Green
+        [Console]::Out.Flush()
 
+        Write-Host "  → Modifying boot.wim registry..." -ForegroundColor Yellow
+        [Console]::Out.Flush()
         reg load HKLM\xDEFAULT "$bootMountDir\Windows\System32\config\default" 2>&1 | Write-Log
         reg load HKLM\xNTUSER "$bootMountDir\Users\Default\ntuser.dat" 2>&1 | Write-Log
         reg load HKLM\xSYSTEM "$bootMountDir\Windows\System32\config\SYSTEM" 2>&1 | Write-Log
         reg load HKLM\xSOFTWARE "$bootMountDir\Windows\System32\config\SOFTWARE" 2>&1 | Write-Log
 
-        reg add "HKLM\xSYSTEM\Setup\LabConfig" /v "BypassTPMCheck" /t REG_DWORD /d 1 /f 2>&1 | Write-Log
-        reg add "HKLM\xSYSTEM\Setup\LabConfig" /v "BypassSecureBootCheck" /t REG_DWORD /d 1 /f 2>&1 | Write-Log
-        reg add "HKLM\xSYSTEM\Setup\LabConfig" /v "BypassStorageCheck" /t REG_DWORD /d 1 /f 2>&1 | Write-Log
-        reg add "HKLM\xSYSTEM\Setup\LabConfig" /v "BypassCPUCheck" /t REG_DWORD /d 1 /f 2>&1 | Write-Log
-        reg add "HKLM\xSYSTEM\Setup\LabConfig" /v "BypassRAMCheck" /t REG_DWORD /d 1 /f 2>&1 | Write-Log
-        reg add "HKLM\xSYSTEM\Setup\LabConfig" /v "BypassDiskCheck" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-        reg add "HKLM\xSYSTEM\Setup\MoSetup" /v "AllowUpgradesWithUnsupportedTPMOrCPU" /t REG_DWORD /d 1 /f 2>&1 | Write-Log
-        reg add "HKLM\xDEFAULT\Control Panel\UnsupportedHardwareNotificationCache" /v "SV1" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-        reg add "HKLM\xDEFAULT\Control Panel\UnsupportedHardwareNotificationCache" /v "SV2" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-        reg add "HKLM\xSOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v "HideUnsupportedHardwareNotifications" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
-        reg add "HKLM\xSOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\HwReqChk" /v "HwReqChkVars" /t REG_MULTI_SZ /d "SQ_SecureBootCapable=TRUE\0SQ_SecureBootEnabled=TRUE\0SQ_TpmVersion=2\0SQ_RamMB=8192" /f 2>&1 | Write-Log
-        reg add "HKLM\xNTUSER\Software\Microsoft\PCHC" /v "UpgradeEligibility" /t REG_DWORD /d "1" /f 2>&1 | Write-Log
+        $bootTpmRegistry = @(
+            @{Key="HKLM\xSYSTEM\Setup\LabConfig"; Value="BypassTPMCheck"; Type="REG_DWORD"; Data="1"},
+            @{Key="HKLM\xSYSTEM\Setup\LabConfig"; Value="BypassSecureBootCheck"; Type="REG_DWORD"; Data="1"},
+            @{Key="HKLM\xSYSTEM\Setup\LabConfig"; Value="BypassStorageCheck"; Type="REG_DWORD"; Data="1"},
+            @{Key="HKLM\xSYSTEM\Setup\LabConfig"; Value="BypassCPUCheck"; Type="REG_DWORD"; Data="1"},
+            @{Key="HKLM\xSYSTEM\Setup\LabConfig"; Value="BypassRAMCheck"; Type="REG_DWORD"; Data="1"},
+            @{Key="HKLM\xSYSTEM\Setup\LabConfig"; Value="BypassDiskCheck"; Type="REG_DWORD"; Data="1"},
+            @{Key="HKLM\xSYSTEM\Setup\MoSetup"; Value="AllowUpgradesWithUnsupportedTPMOrCPU"; Type="REG_DWORD"; Data="1"},
+            @{Key="HKLM\xDEFAULT\Control Panel\UnsupportedHardwareNotificationCache"; Value="SV1"; Type="REG_DWORD"; Data="0"},
+            @{Key="HKLM\xDEFAULT\Control Panel\UnsupportedHardwareNotificationCache"; Value="SV2"; Type="REG_DWORD"; Data="0"},
+            @{Key="HKLM\xSOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"; Value="HideUnsupportedHardwareNotifications"; Type="REG_DWORD"; Data="1"},
+            @{Key="HKLM\xSOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\HwReqChk"; Value="HwReqChkVars"; Type="REG_MULTI_SZ"; Data="SQ_SecureBootCapable=TRUE\0SQ_SecureBootEnabled=TRUE\0SQ_TpmVersion=2\0SQ_RamMB=8192"},
+            @{Key="HKLM\xNTUSER\Software\Microsoft\PCHC"; Value="UpgradeEligibility"; Type="REG_DWORD"; Data="1"}
+        )
+        
+        foreach ($reg in $bootTpmRegistry) {
+            Write-Host "    → Modifying $($reg.Key)\$($reg.Value)..." -ForegroundColor Cyan -NoNewline
+            [Console]::Out.Flush()
+            reg add $reg.Key /v $reg.Value /t $reg.Type /d $reg.Data /f 2>&1 | Write-Log
+            Write-Host " [OK]" -ForegroundColor Green
+            [Console]::Out.Flush()
+        }
 
         reg unload HKLM\xDEFAULT 2>&1 | Write-Log
         reg unload HKLM\xNTUSER 2>&1 | Write-Log
         reg unload HKLM\xSYSTEM 2>&1 | Write-Log
         reg unload HKLM\xSOFTWARE 2>&1 | Write-Log
 
+        Write-Host "  → Saving boot.wim..." -ForegroundColor Yellow -NoNewline
+        [Console]::Out.Flush()
         Invoke-DismFailsafe {Dismount-WindowsImage -Path $bootMountDir -Save} {dism /unmount-image /mountdir:$bootMountDir /commit}
+        Write-Host " [OK]" -ForegroundColor Green
+        [Console]::Out.Flush()
         Write-Host ("[OK] TPM Bypass Successful") -ForegroundColor Green
         Write-Log -msg "Successfully modified boot.wim for TPM Bypass"
     }
     catch {
+        Write-Host " [FAILED]" -ForegroundColor Red
+        [Console]::Out.Flush()
         Write-Log -msg "Failed to mount boot.wim: $_"
     }
     finally {
@@ -1518,27 +1786,43 @@ else {
 if ($buildNumber -ge 22000) {
     if ($DoUserFoldersEnable) {
         Write-Host ("`n[INFO] Restoring User Folders...") -ForegroundColor Cyan
+        Write-Log -msg "Restoring User Folders"
 
-        reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}" /f 2>&1 | Write-Log
-        reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{d3162b92-9365-467a-956b-92703aca08af}" /f 2>&1 | Write-Log
-        reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088e3905-0323-4b02-9826-5d99428e115f}" /f 2>&1 | Write-Log
-        reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{3dfdf296-dbec-4fb4-81d1-6a3438bcf4de}" /f 2>&1 | Write-Log
-        reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{24ad3ad4-a569-4530-98e1-ab02f9417aa8}" /f 2>&1 | Write-Log
-        reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{f86fa3ab-70d2-4fc7-9c99-fcbf05467f3a}" /f 2>&1 | Write-Log
-
-        reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}" /v "HideIfEnabled" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-        reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{d3162b92-9365-467a-956b-92703aca08af}" /v "HideIfEnabled" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-        reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088e3905-0323-4b02-9826-5d99428e115f}" /v "HideIfEnabled" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-        reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{3dfdf296-dbec-4fb4-81d1-6a3438bcf4de}" /v "HideIfEnabled" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-        reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{24ad3ad4-a569-4530-98e1-ab02f9417aa8}" /v "HideIfEnabled" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-        reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{f86fa3ab-70d2-4fc7-9c99-fcbf05467f3a}" /v "HideIfEnabled" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-
-        reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}" /v "HiddenByDefault" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-        reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{d3162b92-9365-467a-956b-92703aca08af}" /v "HiddenByDefault" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-        reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088e3905-0323-4b02-9826-5d99428e115f}" /v "HiddenByDefault" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-        reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{3dfdf296-dbec-4fb4-81d1-6a3438bcf4de}" /v "HiddenByDefault" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-        reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{24ad3ad4-a569-4530-98e1-ab02f9417aa8}" /v "HiddenByDefault" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
-        reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{f86fa3ab-70d2-4fc7-9c99-fcbf05467f3a}" /v "HiddenByDefault" /t REG_DWORD /d "0" /f 2>&1 | Write-Log
+        Write-Host "  → Enabling user folders..." -ForegroundColor Yellow
+        [Console]::Out.Flush()
+        $userFoldersRegistry = @(
+            @{Key="HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}"; Value=""; Type="CREATE"; Data=""},
+            @{Key="HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{d3162b92-9365-467a-956b-92703aca08af}"; Value=""; Type="CREATE"; Data=""},
+            @{Key="HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088e3905-0323-4b02-9826-5d99428e115f}"; Value=""; Type="CREATE"; Data=""},
+            @{Key="HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{3dfdf296-dbec-4fb4-81d1-6a3438bcf4de}"; Value=""; Type="CREATE"; Data=""},
+            @{Key="HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{24ad3ad4-a569-4530-98e1-ab02f9417aa8}"; Value=""; Type="CREATE"; Data=""},
+            @{Key="HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{f86fa3ab-70d2-4fc7-9c99-fcbf05467f3a}"; Value=""; Type="CREATE"; Data=""},
+            @{Key="HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}"; Value="HideIfEnabled"; Type="REG_DWORD"; Data="0"},
+            @{Key="HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{d3162b92-9365-467a-956b-92703aca08af}"; Value="HideIfEnabled"; Type="REG_DWORD"; Data="0"},
+            @{Key="HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088e3905-0323-4b02-9826-5d99428e115f}"; Value="HideIfEnabled"; Type="REG_DWORD"; Data="0"},
+            @{Key="HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{3dfdf296-dbec-4fb4-81d1-6a3438bcf4de}"; Value="HideIfEnabled"; Type="REG_DWORD"; Data="0"},
+            @{Key="HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{24ad3ad4-a569-4530-98e1-ab02f9417aa8}"; Value="HideIfEnabled"; Type="REG_DWORD"; Data="0"},
+            @{Key="HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{f86fa3ab-70d2-4fc7-9c99-fcbf05467f3a}"; Value="HideIfEnabled"; Type="REG_DWORD"; Data="0"},
+            @{Key="HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}"; Value="HiddenByDefault"; Type="REG_DWORD"; Data="0"},
+            @{Key="HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{d3162b92-9365-467a-956b-92703aca08af}"; Value="HiddenByDefault"; Type="REG_DWORD"; Data="0"},
+            @{Key="HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{088e3905-0323-4b02-9826-5d99428e115f}"; Value="HiddenByDefault"; Type="REG_DWORD"; Data="0"},
+            @{Key="HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{3dfdf296-dbec-4fb4-81d1-6a3438bcf4de}"; Value="HiddenByDefault"; Type="REG_DWORD"; Data="0"},
+            @{Key="HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{24ad3ad4-a569-4530-98e1-ab02f9417aa8}"; Value="HiddenByDefault"; Type="REG_DWORD"; Data="0"},
+            @{Key="HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{f86fa3ab-70d2-4fc7-9c99-fcbf05467f3a}"; Value="HiddenByDefault"; Type="REG_DWORD"; Data="0"}
+        )
+        
+        foreach ($reg in $userFoldersRegistry) {
+            $displayKey = if ($reg.Value) { "$($reg.Key)\$($reg.Value)" } else { $reg.Key }
+            Write-Host "    → Modifying $displayKey..." -ForegroundColor Cyan -NoNewline
+            [Console]::Out.Flush()
+            if ($reg.Type -eq "CREATE") {
+                reg add $reg.Key /f 2>&1 | Write-Log
+            } else {
+                reg add $reg.Key /v $reg.Value /t $reg.Type /d $reg.Data /f 2>&1 | Write-Log
+            }
+            Write-Host " [OK]" -ForegroundColor Green
+            [Console]::Out.Flush()
+        }
         
         Write-Host ("[OK] User Folders Restored") -ForegroundColor Green
         Write-Log -msg "User folders restored successfully"
