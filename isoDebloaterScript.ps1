@@ -748,16 +748,9 @@ $DoUseOscdimg = Get-ParameterValue -ParameterValue $useOscdimg -DefaultValue $tr
 
 # Comment out the package don't wanna remove
 $appxPatternsToRemove = @(
-    "Microsoft.3DBuilder*",                     # 3D Builder
     "Microsoft.Microsoft3DViewer*",             # 3DViewer
     "Microsoft.WindowsAlarms*",                 # Alarms
-    "Microsoft.BingFinance*",                   # Bing Finance
-    "Microsoft.BingFoodAndDrink*",              # Bing Food & Drink
-    "Microsoft.BingHealthAndFitness*",          # Bing Health & Fitness
     "Microsoft.BingNews*",                      # Bing News
-    "Microsoft.BingSports*",                    # Bing Sports
-    "Microsoft.BingTranslator*",                # Bing Translator
-    "Microsoft.BingTravel*",                    # Bing Travel
     "Microsoft.BingWeather*",                   # Bing Weather
     "Clipchamp.Clipchamp*",                     # Clipchamp
     "Microsoft.549981C3F5F10*",                 # Cortana
@@ -766,55 +759,47 @@ $appxPatternsToRemove = @(
     "Microsoft.WindowsFeedbackHub*",            # FeedbackHub
     "Microsoft.GetHelp*",                       # GetHelp
     "Microsoft.Getstarted*",                    # GetStarted
-    "Microsoft.Messaging*",                     # Messaging
-    "Microsoft.MicrosoftJournal*",              # Microsoft Journal
-    "Microsoft.MicrosoftStickyNotes*",          # Sticky Notes
-    "Microsoft.NetworkSpeedTest*",              # Network Speed Test
-    "Microsoft.News*",                          # Microsoft News
-    "Microsoft.Office.Sway*",                   # Office Sway
-    "Microsoft.OneConnect*",                    # OneConnect
-    "Microsoft.Print3D*",                       # Print 3D
     "Microsoft.WindowsCommunicationsapps*",     # Mail
     "Microsoft.WindowsMaps*",                   # Maps
     "Microsoft.MixedReality.Portal*",           # MixedReality
     "Microsoft.ZuneMusic*",                     # Music
     "Microsoft.MicrosoftOfficeHub*",            # OfficeHub
-    "Microsoft.MicrosoftPowerBIForWindows*",   # Power BI
     "Microsoft.Office.OneNote*",                # OneNote
     "Microsoft.OutlookForWindows*",             # Outlook
     "Microsoft.MSPaint*",                       # Paint3D(Windows10)
     "Microsoft.People*",                        # People
-    "Microsoft.YourPhone*",                     # Phone Link
+    "Microsoft.YourPhone*",                     # Phone
     "Microsoft.PowerAutomateDesktop*",          # PowerAutomate
     "MicrosoftCorporationII.QuickAssist*",      # QuickAssist
     "Microsoft.SkypeApp*",                      # Skype
     "Microsoft.MicrosoftSolitaireCollection*",  # SolitaireCollection
-    "Microsoft.WindowsSoundRecorder*",          # SoundRecorder
+    # "Microsoft.WindowsSoundRecorder*",          # SoundRecorder
     "MicrosoftTeams*",                          # Teams_old
     "MSTeams*",                                 # Teams
     "Microsoft.Windows.Teams*",                 # Teams
     "Microsoft.Todos*",                         # Todos
     "Microsoft.ZuneVideo*",                     # Video
     "Microsoft.Wallet*",                        # Wallet
-    "Microsoft.GamingApp*",                     # Xbox Gaming App
-    "Microsoft.XboxApp*",                       # Xbox Console Companion (old, not supported)
-    "Microsoft.XboxGameOverlay*",               # Xbox Game Overlay
-    "Microsoft.XboxGamingOverlay*",             # Xbox Gaming Overlay
-    "Microsoft.XboxSpeechToTextOverlay*",       # Xbox Speech To Text
-    "Microsoft.Xbox.TCUI*",                     # Xbox TCUI
-    "Microsoft.SecHealthUI*",                   # Windows Security
-    "MicrosoftWindows.CrossDevice*",            # Cross Device
+    "Microsoft.GamingApp*",                     # Xbox
+    "Microsoft.XboxApp*",                       # Xbox(Win10)
+    "Microsoft.XboxGameOverlay*",               # XboxGameOverlay
+    "Microsoft.XboxGamingOverlay*",             # XboxGamingOverlay
+    "Microsoft.XboxSpeechToTextOverlay*",       # XboxSpeechToTextOverlay
+    "Microsoft.Xbox.TCUI*",                     # XboxTCUI
+    # "Microsoft.SecHealthUI*",                   # Windows Security
+    "MicrosoftWindows.CrossDevice*",            # CrossDevice
     "Microsoft.Windows.PeopleExperienceHost*",  # PeopleExperienceHost
     "Windows.CBSPreview*",                      # CBS Preview
     "Microsoft.BingSearch*",                    # Bing Search
     "Microsoft.WindowsStore*",                 # Microsoft Store
     # "Microsoft.WindowsCalculator*",           # Calculator (kept)
-    "Microsoft.WindowsCamera*",                # Camera
+    "Microsoft.WindowsCamera*",                 # Camera
     # "Microsoft.WindowsNotepad*",               # Notepad (kept)
-    "Microsoft.Windows.Photos*",               # Photos
-    "Microsoft.ScreenSketch*",                 # Snipping Tool
+    "Microsoft.WindowsSoundRecorder*",          # Sound Recorder
     # "Microsoft.WindowsTerminal*",              # Windows Terminal (kept)
     # "Microsoft.WindowsTerminalPreview*",       # Windows Terminal Preview (kept)
+    "Microsoft.Windows.Photos*",                # Photos
+    "Microsoft.ScreenSketch*",                  # Snip & Sketch
     # "Microsoft.WindowsRemoteDesktop*",          # Remote Desktop (kept)
     "Microsoft.DesktopAppInstaller*",           # App Installer
     "Microsoft.WindowsWebExperiencePack*",      # Web Experience Pack
@@ -833,90 +818,8 @@ $appxPatternsToRemove = @(
     "Microsoft.Windows.WifiSense*",             # WiFi Sense
     "Microsoft.Windows.AssignedAccessLockApp*", # Assigned Access Lock App
     "Microsoft.Windows.XboxGameCallableUI*",    # Xbox Game Callable UI
-    "Microsoft.XboxIdentityProvider*",        # Xbox Identity Provider
-    "Microsoft.XboxGameSpeechWindow*",          # Xbox Game Speech Window
-    
-    # OEM Apps - Games
-    "Asphalt8Airborne*",
-    "CaesarsSlotsFreeCasino*",
-    "COOKINGFEVER*",
-    "DisneyMagicKingdoms*",
-    "Disney*",
-    "FarmVille2CountryEscape*",
-    "HiddenCity*",
-    "king.com.BubbleWitch3Saga*",
-    "king.com.CandyCrushSaga*",
-    "king.com.CandyCrushSodaSaga*",
-    "MarchofEmpires*",
-    "RoyalRevolt*",
-    
-    # OEM Apps - Media & Entertainment
-    "ACGMediaPlayer*",
-    "Amazon.com.Amazon*",
-    "AmazonVideo.PrimeVideo*",
-    "HULULLC.HULUPLUS*",
-    "Netflix*",
-    "Plex*",
-    "Spotify*",
-    "TikTok*",
-    
-    # OEM Apps - Social Media
-    "Facebook*",
-    "Instagram*",
-    "LinkedInforWindows*",
-    "Twitter*",
-    "Viber*",
-    
-    # OEM Apps - Photo & Video Editing
-    "AdobeSystemsIncorporated.AdobePhotoshopExpress*",
-    "AutodeskSketchBook*",
-    "DrawboardPDF*",
-    "PhototasticCollage*",
-    "PicsArt-PhotoStudio*",
-    "PolarrPhotoEditorAcademicEdition*",
-    
-    # OEM Apps - Productivity & Utilities
-    "Duolingo-LearnLanguagesforFree*",
-    "EclipseManager*",
-    "iHeartRadio*",
-    "NYTCrossword*",
-    "OneCalendar*",
-    "PandoraMediaInc*",
-    "Shazam*",
-    "SlingTV*",
-    "TuneInRadio*",
-    "WinZipUniversal*",
-    "Wunderlist*",
-    "XING*",
-    "Flipboard*",
-    "fitbit*",
-    
-    # OEM Apps - System Utilities
-    "ActiproSoftwareLLC*",
-    "CyberLinkMediaSuiteEssentials*",
-    "Sidia.LiveWallpaper*",
-    
-    # HP OEM Apps (AD2F1837 - HP)
-    "AD2F1837.HPAIExperienceCenter*",
-    "AD2F1837.HPConnectedMusic*",
-    "AD2F1837.HPConnectedPhotopoweredbySnapfish*",
-    "AD2F1837.HPDesktopSupportUtilities*",
-    "AD2F1837.HPEasyClean*",
-    "AD2F1837.HPFileViewer*",
-    "AD2F1837.HPJumpStarts*",
-    "AD2F1837.HPPCHardwareDiagnosticsWindows*",
-    "AD2F1837.HPPowerManager*",
-    "AD2F1837.HPPrinterControl*",
-    "AD2F1837.HPPrivacySettings*",
-    "AD2F1837.HPQuickDrop*",
-    "AD2F1837.HPQuickTouch*",
-    "AD2F1837.HPRegistration*",
-    "AD2F1837.HPSupportAssistant*",
-    "AD2F1837.HPSureShieldAI*",
-    "AD2F1837.HPSystemInformation*",
-    "AD2F1837.HPWelcome*",
-    "AD2F1837.HPWorkWell*",
-    "AD2F1837.myHP*"
+    "Microsoft.XboxIdentityProvider*",           # Xbox Identity Provider
+    "Microsoft.XboxGameSpeechWindow*"           # Xbox Game Speech Window
 )
 
 $capabilitiesToRemove = @(
@@ -929,9 +832,9 @@ $capabilitiesToRemove = @(
     "Language.TextToSpeech~~~$langCode*",
     "Microsoft.Windows.WordPad*",
     "MathRecognizer*",
-    "Media.WindowsMediaPlayer*",
-    # "Microsoft.Windows.PowerShell.ISE*"       # PowerShell ISE (kept)
+    "Media.WindowsMediaPlayer*"
 )
+# "Microsoft.Windows.PowerShell.ISE*"       # PowerShell ISE (kept)
 
 $windowsPackagesToRemove = @(
     "Microsoft-Windows-InternetExplorer-Optional-Package*",
