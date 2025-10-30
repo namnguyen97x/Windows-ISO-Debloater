@@ -799,7 +799,7 @@ $appxPatternsToRemove = @(
     "Microsoft.Windows.Photos*",                # Photos
     "Microsoft.ScreenSketch*",                  # Snip & Sketch
     "Microsoft.ScreenSketchMain*",              # Snip & Sketch (alternative)
-    "Microsoft.WindowsRemoteDesktop*",          # Remote Desktop
+    # "Microsoft.WindowsRemoteDesktop*",          # Remote Desktop (kept)
     "Microsoft.DesktopAppInstaller*",           # App Installer
     "Microsoft.WindowsWebExperiencePack*",      # Web Experience Pack
     "Microsoft.MicrosoftEdgeUpdate*",            # Edge Update
