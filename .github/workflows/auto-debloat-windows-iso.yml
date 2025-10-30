@@ -341,60 +341,31 @@ jobs:
           $env:COLUMNS = "80"
           $env:LINES = "24"
           
-          # Run script with output redirection to avoid cursor issues
-          $process = Start-Process -FilePath "powershell.exe" -ArgumentList @(
-            "-NoProfile",
-            "-ExecutionPolicy",
-            "Bypass",
-            "-File",
-            ".\isoDebloaterScript.ps1",
-            "-noPrompt",
-            "-isoPath",
-            $isoPath,
-            "-winEdition",
-            $winEdition,
-            "-outputISO",
-            $outputISO,
-            "-AppxRemove",
-            $storeRemove,
-            "-CapabilitiesRemove",
-            "yes",
-            "-OnedriveRemove",
-            "yes",
-            "-EDGERemove",
-            $edgeRemove,
-            "-AIRemove",
-            $aiRemove,
-            "-DefenderRemove",
-            $defenderRemove,
-            "-TPMBypass",
-            $tpmBypass,
-            "-UserFoldersEnable",
-            "yes",
-            "-ESDConvert",
-            $esdConvert,
-            "-useOscdimg",
-            "yes"
-          ) -Wait -PassThru -RedirectStandardOutput "script_output.txt" -RedirectStandardError "script_error.txt"
+          # Run script directly with parameters
+          $scriptPath = ".\isoDebloaterScript.ps1"
           
-          # Display output
-          if (Test-Path "script_output.txt") {
-            Write-Host "=== SCRIPT OUTPUT ==="
-            Get-Content "script_output.txt" | Write-Host
-            Write-Host "===================="
-          }
+          Write-Host "Executing script with parameters..."
           
-          if (Test-Path "script_error.txt") {
-            $errorContent = Get-Content "script_error.txt"
-            if ($errorContent) {
-              Write-Host "=== SCRIPT ERRORS ==="
-              $errorContent | Write-Host
-              Write-Host "===================="
-            }
-          }
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $scriptPath `
+            -noPrompt `
+            -isoPath "$isoPath" `
+            -winEdition "$winEdition" `
+            -outputISO "$outputISO" `
+            -AppxRemove "$storeRemove" `
+            -CapabilitiesRemove "yes" `
+            -OnedriveRemove "yes" `
+            -EDGERemove "$edgeRemove" `
+            -AIRemove "$aiRemove" `
+            -DefenderRemove "$defenderRemove" `
+            -TPMBypass "$tpmBypass" `
+            -UserFoldersEnable "yes" `
+            -ESDConvert "$esdConvert" `
+            -useOscdimg "yes"
           
-          if ($process.ExitCode -ne 0) {
-            throw "Script exited with code: $($process.ExitCode)"
+          $exitCode = $LASTEXITCODE
+          
+          if ($exitCode -ne 0) {
+            throw "Script exited with code: $exitCode"
           }
           
           Write-Host "Windows ISO Debloater completed successfully"
