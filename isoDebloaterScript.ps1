@@ -1497,46 +1497,36 @@ $bitlockerRegistry = @(
 )
 Apply-RegistryTweaks -SectionName "Disabling Bitlocker Encryption" -RegistryOperations $bitlockerRegistry
 
-# Disable VBS (Virtualization-Based Security)
+# Disable VBS (Virtualization-Based Security) - Safe version (only Group Policy, avoid SYSTEM registry modifications)
 Write-Host "  → Disabling VBS (Virtualization-Based Security)..." -ForegroundColor Yellow
 [Console]::Out.Flush()
 $vbsRegistry = @(
-    # DeviceGuard Control Settings
-    @{Key="HKLM\zSYSTEM\CurrentControlSet\Control\DeviceGuard"; Value="EnableVirtualizationBasedSecurity"; Type="REG_DWORD"; Data="0"},
-    @{Key="HKLM\zSYSTEM\CurrentControlSet\Control\DeviceGuard"; Value="RequirePlatformSecurityFeatures"; Type="REG_DWORD"; Data="0"},
-    @{Key="HKLM\zSYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity"; Value="Enabled"; Type="REG_DWORD"; Data="0"},
-    @{Key="HKLM\zSYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity"; Value="WasEnabledByGroupPolicy"; Type="REG_DWORD"; Data="0"},
-    @{Key="HKLM\zSYSTEM\ControlSet001\Control\DeviceGuard"; Value="EnableVirtualizationBasedSecurity"; Type="REG_DWORD"; Data="0"},
-    @{Key="HKLM\zSYSTEM\ControlSet001\Control\DeviceGuard"; Value="RequirePlatformSecurityFeatures"; Type="REG_DWORD"; Data="0"},
-    @{Key="HKLM\zSYSTEM\ControlSet001\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity"; Value="Enabled"; Type="REG_DWORD"; Data="0"},
-    @{Key="HKLM\zSYSTEM\ControlSet001\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity"; Value="WasEnabledByGroupPolicy"; Type="REG_DWORD"; Data="0"},
-    # Group Policy DeviceGuard Settings
+    # Only modify Group Policy settings (safer than SYSTEM registry)
     @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Windows\DeviceGuard"; Value="EnableVirtualizationBasedSecurity"; Type="REG_DWORD"; Data="0"},
     @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Windows\DeviceGuard"; Value="RequirePlatformSecurityFeatures"; Type="REG_DWORD"; Data="0"},
     @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Windows\DeviceGuard"; Value="TurnOnVirtualizationBasedSecurity"; Type="REG_DWORD"; Data="0"},
-    @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Windows\DeviceGuard"; Value="Locked"; Type="REG_DWORD"; Data="0"},
     @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Windows\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity"; Value="Enabled"; Type="REG_DWORD"; Data="0"},
-    @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Windows\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity"; Value="Locked"; Type="REG_DWORD"; Data="0"},
-    @{Key="HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity"; Value="Enabled"; Type="REG_DWORD"; Data="0"},
-    # LSA Configuration
-    @{Key="HKLM\zSYSTEM\CurrentControlSet\Control\Lsa"; Value="LsaCfgFlags"; Type="REG_DWORD"; Data="0"},
-    @{Key="HKLM\zSYSTEM\ControlSet001\Control\Lsa"; Value="LsaCfgFlags"; Type="REG_DWORD"; Data="0"},
-    # Group Policy LSA Settings
-    @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Windows\DeviceGuard"; Value="ConfigureSystemGuardLaunch"; Type="REG_DWORD"; Data="0"},
-    @{Key="HKLM\zSOFTWARE\Policies\Microsoft\Windows\DeviceGuard"; Value="RequireMicrosoftSignedBootChain"; Type="REG_DWORD"; Data="0"}
+    @{Key="HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity"; Value="Enabled"; Type="REG_DWORD"; Data="0"}
+    # Removed: SYSTEM registry modifications for DeviceGuard (can cause CONFIG INITIALIZATION FAILED)
+    # Removed: LSA registry modifications (LsaCfgFlags) - too risky, can cause boot failures
 )
 
 foreach ($reg in $vbsRegistry) {
     Write-Host "    → Modifying $($reg.Key)\$($reg.Value)..." -ForegroundColor Cyan -NoNewline
     [Console]::Out.Flush()
     try {
-        reg add $reg.Key /v $reg.Value /t $reg.Type /d $reg.Data /f 2>&1 | Write-Log
-        Write-Host " [OK]" -ForegroundColor Green
+        $result = reg add $reg.Key /v $reg.Value /t $reg.Type /d $reg.Data /f 2>&1 | Out-String
+        Write-Log -msg "VBS registry: $($reg.Key)\$($reg.Value) = $($reg.Data)"
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host " [OK]" -ForegroundColor Green
+        } else {
+            Write-Host " [SKIPPED]" -ForegroundColor Yellow
+        }
         [Console]::Out.Flush()
     } catch {
         Write-Host " [SKIPPED]" -ForegroundColor Yellow
         [Console]::Out.Flush()
-        Write-Log -msg "VBS registry key may not exist: $($reg.Key)\$($reg.Value)"
+        Write-Log -msg "VBS registry key skipped (may not exist): $($reg.Key)\$($reg.Value)"
     }
 }
 Write-Host "  → Disabling VBS (Virtualization-Based Security) [DONE]" -ForegroundColor Green
@@ -1918,14 +1908,50 @@ if ($buildNumber -ge 22000) {
     }
 }
 
+# Unload Registry (Critical: Must unload before unmounting to prevent corruption)
 Write-Host ("`n[INFO] Unloading Registry...") -ForegroundColor Cyan
-Write-Log -msg "Unloading registry"
-reg unload HKLM\zCOMPONENTS 2>&1 | Write-Log
-reg unload HKLM\zDEFAULT 2>&1 | Write-Log
-reg unload HKLM\zNTUSER 2>&1 | Write-Log
-reg unload HKLM\zSOFTWARE 2>&1 | Write-Log
-reg unload HKLM\zSYSTEM 2>&1 | Write-Log
-Write-Host ("[OK] Success") -ForegroundColor Green
+[Console]::Out.Flush()
+Write-Log -msg "Unloading registry hives"
+
+# Function to safely unload registry hive
+function Unload-RegistryHive {
+    param([string]$HiveName)
+    $attempts = 0
+    $maxAttempts = 3
+    while ($attempts -lt $maxAttempts) {
+        try {
+            $result = reg unload $HiveName 2>&1
+            if ($LASTEXITCODE -eq 0) {
+                Write-Log -msg "Successfully unloaded registry hive: $HiveName"
+                return $true
+            } else {
+                $attempts++
+                if ($attempts -lt $maxAttempts) {
+                    Write-Log -msg "Retry $attempts/$maxAttempts unloading $HiveName"
+                    Start-Sleep -Seconds 1
+                }
+            }
+        } catch {
+            $attempts++
+            if ($attempts -lt $maxAttempts) {
+                Write-Log -msg "Error unloading $HiveName, retrying..."
+                Start-Sleep -Seconds 1
+            }
+        }
+    }
+    Write-Log -msg "Warning: Failed to unload registry hive: $HiveName after $maxAttempts attempts"
+    return $false
+}
+
+# Unload registry hives in reverse order (important for COMPONENTS)
+Unload-RegistryHive "HKLM\zCOMPONENTS" | Out-Null
+Unload-RegistryHive "HKLM\zDEFAULT" | Out-Null
+Unload-RegistryHive "HKLM\zNTUSER" | Out-Null
+Unload-RegistryHive "HKLM\zSOFTWARE" | Out-Null
+Unload-RegistryHive "HKLM\zSYSTEM" | Out-Null
+
+Write-Host ("[OK] Registry unloaded successfully") -ForegroundColor Green
+[Console]::Out.Flush()
 
 # Unmounting and cleaning up the image
 Write-Host ("`n[INFO] Cleaning up image...") -ForegroundColor Cyan
